@@ -1,20 +1,3 @@
--- PREREQUISITE: Before the first cron execution, set these two database-level settings
--- in the Supabase SQL editor (or psql) for each environment:
---
--- Local dev:
---   ALTER DATABASE postgres SET app.edge_function_url =
---     'http://host.docker.internal:54321/functions/v1/poll-recently-played';
---   ALTER DATABASE postgres SET app.service_role_key = '<service-role-key>';
---   (find the service role key with: supabase status)
---
--- Cloud (Supabase dashboard → SQL editor):
---   ALTER DATABASE postgres SET app.edge_function_url =
---     'https://<project-ref>.supabase.co/functions/v1/poll-recently-played';
---   ALTER DATABASE postgres SET app.service_role_key = '<service-role-key>';
---
--- These settings are read at cron-execution time via current_setting(), so they can
--- be set at any point before the first scheduled run.
-
 -- Extensions (must come before any objects that reference them)
 create extension if not exists pg_cron with schema extensions;
 create extension if not exists pg_net with schema extensions;
@@ -79,20 +62,24 @@ create trigger trg_update_profile_points
   after insert on public.listening_events
   for each row execute procedure public.update_profile_points();
 
--- pg_cron job: invoke the edge function every 3 minutes.
--- current_setting() is evaluated at execution time, not at schedule time,
--- so the DB settings above can be set after this migration runs.
+-- pg_cron job skeleton — registered here but command is a no-op placeholder.
+-- After deploying, replace with the real URL and service-role key by running:
+--
+--   SELECT cron.unschedule('poll-recently-played');
+--   SELECT cron.schedule(
+--     'poll-recently-played', '*/3 * * * *',
+--     $$SELECT net.http_post(
+--       url     := '<edge-function-url>',
+--       headers := '{"Content-Type":"application/json","Authorization":"Bearer <service-role-key>"}'::jsonb,
+--       body    := '{}'::jsonb
+--     );$$
+--   );
+--
+-- Local dev URL:  http://host.docker.internal:54321/functions/v1/poll-recently-played
+-- Cloud URL:      https://<project-ref>.supabase.co/functions/v1/poll-recently-played
+-- Service role key: from `supabase status` (local) or Supabase dashboard (cloud).
 select cron.schedule(
   'poll-recently-played',
   '*/3 * * * *',
-  $$
-    select net.http_post(
-      url     := current_setting('app.edge_function_url'),
-      headers := jsonb_build_object(
-        'Content-Type',  'application/json',
-        'Authorization', 'Bearer ' || current_setting('app.service_role_key')
-      ),
-      body    := '{}'::jsonb
-    );
-  $$
+  $$ SELECT 1; $$
 );
