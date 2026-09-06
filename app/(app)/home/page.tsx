@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import { Music, Flame, Trophy } from "lucide-react"
+import { Music, Flame, Trophy, Activity } from "lucide-react"
+import { getLeaderboard } from "@/app/(app)/leaderboard/actions"
+import { LeaderboardClient } from "@/app/(app)/leaderboard/_components/leaderboard-client"
+import { getStreakStats, getHeatmapData, todayInManila } from "@/app/(app)/home/actions"
+import { ActivityHeatmap } from "@/components/activity-heatmap"
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -10,13 +14,20 @@ export default async function HomePage() {
 
   if (!user) redirect("/login")
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, avatar_url, total_points")
-    .eq("id", user.id)
-    .single()
+  const [{ data: profile }, initialLeaderboard, streaks, heatmapData] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("username, avatar_url, total_points")
+        .eq("id", user.id)
+        .single(),
+      getLeaderboard(),
+      getStreakStats(user.id),
+      getHeatmapData(user.id),
+    ])
 
   const displayName = profile?.username ?? "Listener"
+  const today = todayInManila()
 
   return (
     <div className="space-y-8">
@@ -47,7 +58,6 @@ export default async function HomePage() {
             {displayName}
           </h1>
         </div>
-        {/* Decorative accent */}
         <div className="ml-auto hidden sm:block w-12 h-12 rounded-full bg-[#FBBF24] border-2 border-foreground" />
       </div>
 
@@ -73,24 +83,40 @@ export default async function HomePage() {
           icon={<Flame className="w-5 h-5 text-white" />}
           iconBg="bg-[#F472B6]"
           label="Current Streak"
-          value="—"
-          note="Listen daily to build a streak"
+          value={
+            streaks.currentStreak > 0
+              ? `${streaks.currentStreak} day${streaks.currentStreak === 1 ? "" : "s"}`
+              : "—"
+          }
+          note={
+            streaks.currentStreak > 0
+              ? `Longest: ${streaks.longestStreak} day${streaks.longestStreak === 1 ? "" : "s"}`
+              : "Listen daily to build a streak"
+          }
           shadowClass="shadow-hard-pink"
         />
       </div>
 
-      {/* Leaderboard placeholder */}
-      <div className="bg-white border-2 border-foreground rounded-2xl p-8 shadow-hard">
-        <div className="flex items-center gap-3 mb-4">
+      {/* Activity heatmap */}
+      <div className="bg-white border-2 border-foreground rounded-2xl p-6 shadow-hard">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-full border-2 border-foreground bg-[#34D399] flex items-center justify-center">
+            <Activity className="w-5 h-5 text-foreground" />
+          </div>
+          <h2 className="font-heading font-bold text-xl">Activity</h2>
+        </div>
+        <ActivityHeatmap data={heatmapData} today={today} />
+      </div>
+
+      {/* Leaderboard */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full border-2 border-foreground bg-[#FBBF24] flex items-center justify-center">
             <Trophy className="w-5 h-5 text-foreground" />
           </div>
           <h2 className="font-heading font-bold text-xl">Leaderboard</h2>
         </div>
-        <p className="text-muted-foreground text-sm">
-          Rankings will appear here once listening data is tracked. Check back after
-          the cron engine is set up.
-        </p>
+        <LeaderboardClient initialData={initialLeaderboard} currentUserId={user.id} />
       </div>
     </div>
   )
