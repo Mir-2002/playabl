@@ -3,7 +3,7 @@ import { RecentlyPlayedSchema } from "../_shared/types.ts";
 
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SPOTIFY_RECENTLY_PLAYED_URL =
-  "https://api.spotify.com/v1/me/recently-played";
+  "https://api.spotify.com/v1/me/player/recently-played";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -16,6 +16,7 @@ const supabase = createClient(
 
 Deno.serve(async (_req: Request) => {
   try {
+    console.log("[poll] tick start");
     const { data: accounts, error } = await supabase
       .from("spotify_accounts")
       .select(
@@ -25,6 +26,7 @@ Deno.serve(async (_req: Request) => {
 
     if (error) throw error;
 
+    console.log(`[poll] accounts found: ${accounts?.length ?? 0}`);
     for (const account of accounts ?? []) {
       try {
         await processUser(account);
@@ -32,6 +34,7 @@ Deno.serve(async (_req: Request) => {
         console.error(`[poll] user ${account.user_id} failed:`, err);
       }
     }
+    console.log("[poll] tick done");
   } catch (err) {
     console.error("[poll] fatal:", err);
   }
@@ -74,9 +77,11 @@ async function processUser(account: Account): Promise<void> {
   }
 
   if (!res.ok) {
-    throw new Error(`Spotify API ${res.status} for user ${account.user_id}`);
+    const errBody = await res.text();
+    throw new Error(`Spotify API ${res.status} for user ${account.user_id}: ${errBody}`);
   }
 
+  console.log(`[poll] user ${account.user_id}: Spotify API ok`);
   const body = await res.json();
   const parsed = RecentlyPlayedSchema.parse(body);
 
@@ -110,12 +115,18 @@ async function ensureValidToken(account: Account): Promise<string | null> {
     !expiresAt ||
     expiresAt.getTime() - Date.now() < bufferMs;
 
-  if (!needsRefresh) return account.access_token!;
+  if (!needsRefresh) {
+    console.log(`[poll] user ${account.user_id}: token still valid`);
+    return account.access_token!;
+  }
 
   if (!account.provider_refresh_token) {
+    console.warn(`[poll] user ${account.user_id}: no refresh token — marking needs_reauth`);
     await markNeedsReauth(account.user_id);
     return null;
   }
+
+  console.log(`[poll] user ${account.user_id}: minting new access token`);
 
   const clientId = Deno.env.get("SPOTIFY_CLIENT_ID")!;
   const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET")!;
