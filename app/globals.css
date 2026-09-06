@@ -1,26 +1,171 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Exclude documentation/skill dirs — they contain Tailwind class names in code examples */
+@source not "../.claude/**";
+@source not "../.agents/**";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-plus-jakarta);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-outfit);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* Playabl / ui-master Playful Geometric palette */
+  --background: oklch(0.993 0.009 97);       /* #FFFDF5 warm cream */
+  --foreground: oklch(0.278 0.025 249);       /* #1E293B slate-800 */
+  --card: oklch(1 0 0);                       /* white */
+  --card-foreground: oklch(0.278 0.025 249);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.278 0.025 249);
+  --primary: oklch(0.614 0.222 292);          /* #8B5CF6 vivid violet */
+  --primary-foreground: oklch(1 0 0);         /* white */
+  --secondary: oklch(0.963 0.007 243);        /* #F1F5F9 slate-100 */
+  --secondary-foreground: oklch(0.278 0.025 249);
+  --muted: oklch(0.963 0.007 243);            /* #F1F5F9 slate-100 */
+  --muted-foreground: oklch(0.554 0.023 252); /* #64748B slate-500 */
+  --accent: oklch(0.963 0.007 243);
+  --accent-foreground: oklch(0.278 0.025 249);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.935 0.008 246);           /* #E2E8F0 slate-200 */
+  --input: oklch(0.935 0.008 246);
+  --ring: oklch(0.614 0.222 292);             /* violet focus ring */
+  /* Brand colors (decorative — use via CSS vars or arbitrary Tailwind values) */
+  --brand-pink: #F472B6;
+  --brand-amber: #FBBF24;
+  --brand-mint: #34D399;
+  --brand-violet: #8B5CF6;
+  /* Chart — aligned to brand palette */
+  --chart-1: oklch(0.614 0.222 292);          /* violet */
+  --chart-2: oklch(0.741 0.19 342);           /* pink */
+  --chart-3: oklch(0.824 0.165 84);           /* amber */
+  --chart-4: oklch(0.841 0.148 162);          /* mint */
+  --chart-5: oklch(0.650 0.177 238);          /* blue */
+  --radius: 1.5rem;                           /* base = 24px (radius-lg) */
+  --sidebar: oklch(0.993 0.009 97);
+  --sidebar-foreground: oklch(0.278 0.025 249);
+  --sidebar-primary: oklch(0.614 0.222 292);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.963 0.007 243);
+  --sidebar-accent-foreground: oklch(0.278 0.025 249);
+  --sidebar-border: oklch(0.935 0.008 246);
+  --sidebar-ring: oklch(0.614 0.222 292);
+}
+
+.dark {
+  --background: oklch(0.148 0.004 228.8);
+  --foreground: oklch(0.987 0.002 197.1);
+  --card: oklch(0.218 0.008 223.9);
+  --card-foreground: oklch(0.987 0.002 197.1);
+  --popover: oklch(0.218 0.008 223.9);
+  --popover-foreground: oklch(0.987 0.002 197.1);
+  --primary: oklch(0.714 0.222 292);
+  --primary-foreground: oklch(0.15 0 0);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.275 0.011 216.9);
+  --muted-foreground: oklch(0.723 0.014 214.4);
+  --accent: oklch(0.275 0.011 216.9);
+  --accent-foreground: oklch(0.987 0.002 197.1);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.714 0.222 292);
+  --chart-1: oklch(0.714 0.222 292);
+  --chart-2: oklch(0.741 0.19 342);
+  --chart-3: oklch(0.824 0.165 84);
+  --chart-4: oklch(0.841 0.148 162);
+  --chart-5: oklch(0.750 0.177 238);
+  --sidebar: oklch(0.218 0.008 223.9);
+  --sidebar-foreground: oklch(0.987 0.002 197.1);
+  --sidebar-primary: oklch(0.714 0.222 292);
+  --sidebar-primary-foreground: oklch(0.15 0 0);
+  --sidebar-accent: oklch(0.275 0.011 216.9);
+  --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.714 0.222 292);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-outfit);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  /* Hard shadows — ui-master "Pop" shadow (no blur, solid offset) */
+  .shadow-hard {
+    box-shadow: 4px 4px 0px 0px #1E293B;
+  }
+  .shadow-hard-sm {
+    box-shadow: 2px 2px 0px 0px #1E293B;
+  }
+  .shadow-hard-lg {
+    box-shadow: 8px 8px 0px 0px #1E293B;
+  }
+  .shadow-hard-pink {
+    box-shadow: 8px 8px 0px 0px #F472B6;
+  }
+  .shadow-hard-violet {
+    box-shadow: 8px 8px 0px 0px #8B5CF6;
+  }
+  .hover\:shadow-hard-hover:hover {
+    box-shadow: 6px 6px 0px 0px #1E293B;
+  }
+  /* Polka dot background pattern */
+  .bg-dots {
+    background-image: radial-gradient(oklch(0.278 0.025 249 / 0.12) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
 }
