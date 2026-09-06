@@ -15,14 +15,18 @@ export type StreakStats = {
 
 export async function getStreakStats(userId: string): Promise<StreakStats> {
   const supabase = await createClient()
-  const { data } = await supabase
-    .from("listening_events")
-    .select("played_at")
-    .eq("user_id", userId)
+  const [{ data: events }, { data: profile }] = await Promise.all([
+    supabase.from("listening_events").select("played_at").eq("user_id", userId),
+    supabase.from("profiles").select("created_at").eq("id", userId).single(),
+  ])
+
+  const connectionDay = profile?.created_at ? toManilaDay(profile.created_at) : null
 
   const uniqueDays = [
-    ...new Set((data ?? []).map((e) => toManilaDay(e.played_at))),
-  ].sort()
+    ...new Set((events ?? []).map((e) => toManilaDay(e.played_at))),
+  ]
+    .filter((d) => !connectionDay || d >= connectionDay)
+    .sort()
 
   return computeStreaks(uniqueDays, todayInManila())
 }
@@ -34,7 +38,7 @@ export type HeatmapDay = {
 
 export async function getHeatmapData(userId: string): Promise<HeatmapDay[]> {
   const supabase = await createClient()
-  const oneYearAgo = subDays(new TZDate(new Date(), MANILA), 365).toISOString()
+  const oneYearAgo = subDays(new TZDate(new Date(), MANILA), 91).toISOString()
 
   const { data } = await supabase
     .from("listening_events")

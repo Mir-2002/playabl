@@ -17,7 +17,7 @@ type Cell = {
 function buildGrid(data: HeatmapDay[], today: string): Cell[][] {
   const dayMap = new Map(data.map((d) => [d.date, d.totalMs]))
   const todayDate = parseISO(today)
-  const gridStart = startOfWeek(subDays(todayDate, 52 * 7), { weekStartsOn: 0 })
+  const gridStart = startOfWeek(subDays(todayDate, 13 * 7), { weekStartsOn: 0 })
 
   const weeks: Cell[][] = []
   let cursor = gridStart

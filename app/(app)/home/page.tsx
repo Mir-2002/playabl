@@ -6,6 +6,7 @@ import { LeaderboardClient } from "@/app/(app)/leaderboard/_components/leaderboa
 import { getStreakStats, getHeatmapData } from "@/app/(app)/home/actions"
 import { ActivityHeatmap } from "@/components/activity-heatmap"
 import { todayInManila } from "@/lib/manila-time"
+import { PointsDisplay } from "@/app/(app)/home/_components/points-display"
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -69,9 +70,11 @@ export default async function HomePage() {
           iconBg="bg-primary"
           label="Total Points"
           value={
-            profile?.total_points
-              ? profile.total_points.toLocaleString()
-              : "0"
+            <PointsDisplay
+              currentUserId={user.id}
+              initialData={initialLeaderboard}
+              initialPoints={profile?.total_points ?? 0}
+            />
           }
           note={
             profile?.total_points
@@ -134,7 +137,7 @@ function StatCard({
   icon: React.ReactNode
   iconBg: string
   label: string
-  value: string
+  value: React.ReactNode
   note: string
   shadowClass: string
 }) {
