@@ -3,8 +3,9 @@ import { redirect } from "next/navigation"
 import { Music, Flame, Trophy, Activity } from "lucide-react"
 import { getLeaderboard } from "@/app/(app)/leaderboard/actions"
 import { LeaderboardClient } from "@/app/(app)/leaderboard/_components/leaderboard-client"
-import { getStreakStats, getHeatmapData, todayInManila } from "@/app/(app)/home/actions"
+import { getStreakStats, getHeatmapData } from "@/app/(app)/home/actions"
 import { ActivityHeatmap } from "@/components/activity-heatmap"
+import { todayInManila } from "@/lib/manila-time"
 
 export default async function HomePage() {
   const supabase = await createClient()
