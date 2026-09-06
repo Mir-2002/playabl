@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
 import { Music, Flame, Trophy } from "lucide-react"
 
 export default async function HomePage() {
@@ -7,10 +8,12 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (!user) redirect("/login")
+
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, avatar_url")
-    .eq("id", user!.id)
+    .select("username, avatar_url, total_points")
+    .eq("id", user.id)
     .single()
 
   const displayName = profile?.username ?? "Listener"
@@ -54,8 +57,16 @@ export default async function HomePage() {
           icon={<Music className="w-5 h-5 text-white" />}
           iconBg="bg-primary"
           label="Total Points"
-          value="—"
-          note="Start listening to earn points"
+          value={
+            profile?.total_points
+              ? profile.total_points.toLocaleString()
+              : "0"
+          }
+          note={
+            profile?.total_points
+              ? "Keep listening to earn more"
+              : "Start listening to earn points"
+          }
           shadowClass="shadow-hard-violet"
         />
         <StatCard
