@@ -64,9 +64,6 @@ export default function LandingPage() {
                   Connect Spotify
                 </button>
               </form>
-              <p className="text-xs text-muted-foreground">
-                Free &middot; No credit card
-              </p>
             </div>
           </div>
 
@@ -93,9 +90,9 @@ export default function LandingPage() {
                 <Flame className="w-3.5 h-3.5" />
                 <span className="text-xs font-bold">7 day streak</span>
               </div>
-            </div>
-            <div className="absolute -bottom-4 -left-8 bg-white border-2 border-foreground rounded-xl px-3 py-2 shadow-hard text-sm font-bold">
-              🏆 #3 on leaderboard
+              <div className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-foreground bg-white shadow-hard text-xs font-bold">
+                🏆 #3 on leaderboard
+              </div>
             </div>
           </div>
         </div>
