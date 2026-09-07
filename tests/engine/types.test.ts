@@ -24,6 +24,7 @@ const RecentlyPlayedSchema = z.object({
       before: z.string().optional(),
       after: z.string().optional(),
     })
+    .nullable()
     .optional(),
   next: z.string().nullable().optional(),
 });
@@ -53,6 +54,14 @@ describe("RecentlyPlayedSchema", () => {
 
   it("accepts an empty items array (no new tracks)", () => {
     expect(() => RecentlyPlayedSchema.parse({ items: [] })).not.toThrow();
+  });
+
+  it("accepts a null cursors (empty poll past the `after` cursor)", () => {
+    // Spotify returns `{ items: [], cursors: null, next: null }` when the
+    // `after` cursor is at/past the most recent play.
+    expect(() =>
+      RecentlyPlayedSchema.parse({ items: [], cursors: null, next: null }),
+    ).not.toThrow();
   });
 
   it("accepts response without optional cursors and next", () => {

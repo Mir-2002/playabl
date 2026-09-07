@@ -19,6 +19,7 @@ export const RecentlyPlayedSchema = z.object({
       before: z.string().optional(),
       after: z.string().optional(),
     })
+    .nullable()
     .optional(),
   next: z.string().nullable().optional(),
 });
