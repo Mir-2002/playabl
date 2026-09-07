@@ -4,8 +4,8 @@ import { useActionState } from "react"
 import { Button } from "@/components/ui/button"
 import { sendFriendRequest, type FriendshipStatus, type ActionResult } from "../actions"
 import { AcceptForm, DeclineForm, RemoveForm } from "./friend-action-forms"
+import { CopyLinkButton } from "@/components/copy-link-button"
 import Link from "next/link"
-import { useState } from "react"
 
 interface Props {
   profileUserId: string
@@ -22,11 +22,17 @@ export function FriendButton({
   status,
   requestId,
 }: Props) {
-  if (isOwner) return <CopyLinkButton profileUserId={profileUserId} />
+  if (isOwner) {
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/u/${profileUserId}`
+        : `/u/${profileUserId}`
+    return <CopyLinkButton url={url} />
+  }
   if (!viewerId) {
     return (
       <Link href={`/login?next=/u/${profileUserId}`}>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="lg">
           Sign in to add friend
         </Button>
       </Link>
@@ -35,7 +41,7 @@ export function FriendButton({
 
   if (status === "pending_sent") {
     return (
-      <Button variant="outline" size="sm" disabled>
+      <Button variant="outline" size="lg" disabled>
         Request Sent
       </Button>
     )
@@ -70,31 +76,10 @@ function AddFriendForm({ receiverId }: { receiverId: string }) {
   return (
     <form action={action}>
       <input type="hidden" name="receiverId" value={receiverId} />
-      <Button type="submit" size="sm" disabled={pending}>
+      <Button type="submit" size="lg" disabled={pending}>
         {pending ? "Sending…" : "Add Friend"}
       </Button>
       {state.error && <p className="text-xs text-red-500 mt-1">{state.error}</p>}
     </form>
-  )
-}
-
-function CopyLinkButton({ profileUserId }: { profileUserId: string }) {
-  const [copied, setCopied] = useState(false)
-  const url =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/u/${profileUserId}`
-      : `/u/${profileUserId}`
-
-  function handleCopy() {
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
-  return (
-    <Button variant="outline" size="sm" onClick={handleCopy}>
-      {copied ? "Copied!" : "Copy invite link"}
-    </Button>
   )
 }

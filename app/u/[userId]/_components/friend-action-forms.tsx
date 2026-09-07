@@ -17,7 +17,7 @@ export function AcceptForm({ requestId }: { requestId: string }) {
   return (
     <form action={action}>
       <input type="hidden" name="requestId" value={requestId} />
-      <Button type="submit" size="sm" disabled={pending}>
+      <Button type="submit" size="lg" disabled={pending}>
         {pending ? "Accepting…" : "Accept"}
       </Button>
       {state.error && <p className="text-xs text-red-500 mt-1">{state.error}</p>}
@@ -33,7 +33,7 @@ export function DeclineForm({ requestId }: { requestId: string }) {
   return (
     <form action={action}>
       <input type="hidden" name="requestId" value={requestId} />
-      <Button type="submit" variant="outline" size="sm" disabled={pending}>
+      <Button type="submit" variant="destructive" size="lg" disabled={pending}>
         {pending ? "Declining…" : "Decline"}
       </Button>
       {state.error && <p className="text-xs text-red-500 mt-1">{state.error}</p>}
@@ -56,7 +56,7 @@ export function RemoveForm({
     <form action={action}>
       <input type="hidden" name="requestId" value={requestId} />
       <input type="hidden" name="otherUserId" value={otherUserId} />
-      <Button type="submit" variant="ghost" size="xs" disabled={pending}>
+      <Button type="submit" variant="destructive" size="default" disabled={pending}>
         {pending ? "Removing…" : "Remove"}
       </Button>
       {state.error && <p className="text-xs text-red-500 mt-1">{state.error}</p>}
