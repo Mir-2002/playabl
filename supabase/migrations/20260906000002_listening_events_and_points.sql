@@ -62,24 +62,28 @@ create trigger trg_update_profile_points
   after insert on public.listening_events
   for each row execute procedure public.update_profile_points();
 
--- pg_cron job skeleton — registered here but command is a no-op placeholder.
--- After deploying, replace with the real URL and service-role key by running:
+-- pg_cron job that pokes the poll-recently-played edge function every 3 min.
 --
---   SELECT cron.unschedule('poll-recently-played');
---   SELECT cron.schedule(
---     'poll-recently-played', '*/3 * * * *',
---     $$SELECT net.http_post(
---       url     := '<edge-function-url>',
---       headers := '{"Content-Type":"application/json","Authorization":"Bearer <service-role-key>"}'::jsonb,
---       body    := '{}'::jsonb
---     );$$
---   );
+-- The command resolves the function URL and service-role key from Vault AT RUNTIME
+-- (each tick), so this migration carries NO secrets and is byte-identical local and
+-- cloud. The environment-specific values live in Vault, seeded separately:
+--   - local: supabase/seed.sql (runs on `db reset`, never on `db push`)
+--   - cloud: seeded once by hand — see CLAUDE.md "Cron / Vault setup"
 --
--- Local dev URL:  http://host.docker.internal:54321/functions/v1/poll-recently-played
--- Cloud URL:      https://<project-ref>.supabase.co/functions/v1/poll-recently-played
--- Service role key: from `supabase status` (local) or Supabase dashboard (cloud).
+-- cron.schedule upserts by name, so this both creates and keeps the job in sync on
+-- every reset. Missing Vault secrets → the tick fails loudly in cron.job_run_details
+-- rather than silently no-op'ing (the failure mode a hardcoded placeholder caused).
 select cron.schedule(
   'poll-recently-played',
   '*/3 * * * *',
-  $$ SELECT 1; $$
+  $$
+    select net.http_post(
+      url     := (select decrypted_secret from vault.decrypted_secrets where name = 'poll_edge_function_url'),
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'poll_service_role_key')
+      ),
+      body    := '{}'::jsonb
+    );
+  $$
 );
