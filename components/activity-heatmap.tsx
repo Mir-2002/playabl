@@ -17,7 +17,7 @@ type Cell = {
 function buildGrid(data: HeatmapDay[], today: string): Cell[][] {
   const dayMap = new Map(data.map((d) => [d.date, d.totalMs]))
   const todayDate = parseISO(today)
-  const gridStart = startOfWeek(subDays(todayDate, 13 * 7), { weekStartsOn: 0 })
+  const gridStart = startOfWeek(subDays(todayDate, 52 * 7), { weekStartsOn: 0 })
 
   const weeks: Cell[][] = []
   let cursor = gridStart
@@ -95,25 +95,24 @@ export function ActivityHeatmap({ data, today }: Props) {
         </div>
       </div>
 
-      <div
-        className="grid grid-rows-7 grid-flow-col"
-        style={{ gap: "3px" }}
-      >
-        {weeks.flatMap((week, col) =>
-          week.map((cell, row) => (
-            <div
-              key={`${col}-${row}`}
-              className={`w-3 h-3 rounded-sm flex-shrink-0 ${
-                cell.isPlaceholder ? "opacity-0" : colorClass(cell.totalMs)
-              }`}
-              title={
-                cell.isPlaceholder || cell.totalMs === 0
-                  ? cell.date
-                  : `${cell.date} — ${formatDuration(cell.totalMs)}`
-              }
-            />
-          ))
-        )}
+      <div className="flex" style={{ gap: "3px" }}>
+        {weeks.map((week, col) => (
+          <div key={col} className="flex flex-col" style={{ gap: "3px" }}>
+            {week.map((cell, row) => (
+              <div
+                key={`${col}-${row}`}
+                className={`w-3 h-3 rounded-sm flex-shrink-0 ${
+                  cell.isPlaceholder ? "opacity-0" : colorClass(cell.totalMs)
+                }`}
+                title={
+                  cell.isPlaceholder || cell.totalMs === 0
+                    ? cell.date
+                    : `${cell.date} — ${formatDuration(cell.totalMs)}`
+                }
+              />
+            ))}
+          </div>
+        ))}
       </div>
 
       <div className="flex items-center gap-1.5 mt-3 justify-end">

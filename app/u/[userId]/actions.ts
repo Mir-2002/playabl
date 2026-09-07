@@ -44,7 +44,7 @@ export async function fetchPublicStreakStats(userId: string): Promise<StreakStat
 
 export async function fetchPublicHeatmapData(userId: string): Promise<HeatmapDay[]> {
   const service = createServiceClient()
-  const oneYearAgo = subDays(new TZDate(new Date(), MANILA), 91).toISOString()
+  const oneYearAgo = subDays(new TZDate(new Date(), MANILA), 371).toISOString()
 
   const { data } = await service
     .from("listening_events")

@@ -38,7 +38,7 @@ export type HeatmapDay = {
 
 export async function getHeatmapData(userId: string): Promise<HeatmapDay[]> {
   const supabase = await createClient()
-  const oneYearAgo = subDays(new TZDate(new Date(), MANILA), 91).toISOString()
+  const oneYearAgo = subDays(new TZDate(new Date(), MANILA), 371).toISOString()
 
   const { data } = await supabase
     .from("listening_events")
