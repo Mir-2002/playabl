@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
 import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
-  const next = searchParams.get("next") ?? "/home"
+  const rawNext = searchParams.get("next") ?? "/home"
+  const next = rawNext.startsWith("/") ? rawNext : "/home"
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=missing_code`)
@@ -26,9 +28,11 @@ export async function GET(request: Request) {
     avatar_url: session.user.user_metadata.avatar_url ?? session.user.user_metadata.picture,
   })
 
-  // Capture provider_refresh_token — only available at sign-in time
+  // Capture provider_refresh_token using the service-role client — spotify_accounts has
+  // no SELECT policy, which blocks PostgREST's ON CONFLICT evaluation with the user JWT.
   if (session.provider_refresh_token) {
-    await supabase.from("spotify_accounts").upsert({
+    const service = createServiceClient()
+    await service.from("spotify_accounts").upsert({
       user_id: session.user.id,
       provider_refresh_token: session.provider_refresh_token,
     })
