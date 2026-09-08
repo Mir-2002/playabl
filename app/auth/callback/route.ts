@@ -35,6 +35,14 @@ export async function GET(request: Request) {
     await service.from("spotify_accounts").upsert({
       user_id: session.user.id,
       provider_refresh_token: session.provider_refresh_token,
+      // Reconnecting issues a new refresh token (and may add scopes), which
+      // invalidates any previously-minted access token on Spotify's side. Clear
+      // the cache and reset needs_reauth so the next poll mints fresh from the
+      // new token instead of reusing a stale, now-scope-mismatched one.
+      access_token: null,
+      expires_at: null,
+      needs_reauth: false,
+      updated_at: new Date().toISOString(),
     })
   }
 
