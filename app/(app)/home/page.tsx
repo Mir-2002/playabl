@@ -91,22 +91,28 @@ export default async function HomePage() {
             shadowClass="shadow-hard-violet"
           />
         </Link>
-        <StatCard
-          icon={<Flame className="w-5 h-5 text-white" />}
-          iconBg="bg-[#F472B6]"
-          label="Current Streak"
-          value={
-            streaks.currentStreak > 0
-              ? `${streaks.currentStreak} day${streaks.currentStreak === 1 ? "" : "s"}`
-              : "—"
-          }
-          note={
-            streaks.currentStreak > 0
-              ? `Longest: ${streaks.longestStreak} day${streaks.longestStreak === 1 ? "" : "s"}`
-              : "Listen daily to build a streak"
-          }
-          shadowClass="shadow-hard-pink"
-        />
+        <Link
+          href="/streak"
+          aria-label="View streak calendar"
+          className="block rounded-2xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2"
+        >
+          <StatCard
+            icon={<Flame className="w-5 h-5 text-white" />}
+            iconBg="bg-[#F472B6]"
+            label="Current Streak"
+            value={
+              streaks.currentStreak > 0
+                ? `${streaks.currentStreak} day${streaks.currentStreak === 1 ? "" : "s"}`
+                : "—"
+            }
+            note={
+              streaks.currentStreak > 0
+                ? `Longest: ${streaks.longestStreak} day${streaks.longestStreak === 1 ? "" : "s"}`
+                : "Listen daily to build a streak"
+            }
+            shadowClass="shadow-hard-pink"
+          />
+        </Link>
       </div>
 
       {/* Activity heatmap */}
