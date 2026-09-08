@@ -9,7 +9,7 @@ import {
   prevMonthAnchor,
   nextMonthAnchor,
 } from "@/lib/streak-calendar"
-import type { CalendarCell } from "@/lib/streak-calendar"
+import type { CalendarCell, WeekRow } from "@/lib/streak-calendar"
 
 interface Props {
   qualifyingDays: string[]
@@ -58,28 +58,73 @@ export function StreakCalendar({ qualifyingDays, signupDay, today }: Props) {
       </div>
 
       {/* Day-of-week column headers */}
-      <div className="grid grid-cols-7 gap-2 mb-2">
+      <div className="grid grid-cols-7 mb-2">
         {DAY_LABELS.map((d) => (
           <div
             key={d}
-            className="w-10 h-6 mx-auto flex items-center justify-center text-xs font-bold text-muted-foreground uppercase"
+            className="flex items-center justify-center h-6 text-xs font-bold text-muted-foreground uppercase"
           >
             {d}
           </div>
         ))}
       </div>
 
-      {/* Calendar grid — one div per week row */}
+      {/* Calendar grid */}
       <div className="space-y-2">
         {month.weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 gap-2">
-            {week.map((cell, ci) => (
-              <CalendarCellView
-                key={cell.date ?? `blank-${wi}-${ci}`}
-                cell={cell}
-              />
-            ))}
-          </div>
+          <WeekRowView key={wi} week={week} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Finds consecutive runs of lit cells within a 7-cell week, returning [colStart, colEnd] pairs. */
+function litRuns(week: WeekRow): Array<[number, number]> {
+  const runs: Array<[number, number]> = []
+  let start = -1
+  for (let i = 0; i <= 7; i++) {
+    const lit = i < 7 && week[i].state === "lit"
+    if (lit && start === -1) {
+      start = i
+    } else if (!lit && start !== -1) {
+      if (i - start >= 2) runs.push([start, i - 1])
+      start = -1
+    }
+  }
+  return runs
+}
+
+function WeekRowView({ week }: { week: WeekRow }) {
+  const runs = litRuns(week)
+
+  return (
+    <div className="relative">
+      {/*
+        Connector bars drawn at row level. Using column-center percentages means both
+        endpoints share the same width reference — no sub-pixel gap at column boundaries.
+
+        Circle center is at top 20px (half of h-10 = 40px).
+        Column i center (0-indexed): (i + 0.5) / 7 * 100%
+      */}
+      {runs.map(([s, e]) => (
+        <div
+          key={`${s}-${e}`}
+          aria-hidden
+          className="absolute h-3 bg-[#FBBF24]"
+          style={{
+            top: 20,
+            transform: "translateY(-50%)",
+            left: `${((s + 0.5) / 7) * 100}%`,
+            right: `${((7 - e - 0.5) / 7) * 100}%`,
+          }}
+        />
+      ))}
+
+      {/* Cells rendered above bars via stacking context */}
+      <div className="grid grid-cols-7 relative z-10">
+        {week.map((cell, ci) => (
+          <CalendarCellView key={cell.date ?? `blank-${ci}`} cell={cell} />
         ))}
       </div>
     </div>
@@ -87,73 +132,47 @@ export function StreakCalendar({ qualifyingDays, signupDay, today }: Props) {
 }
 
 function CalendarCellView({ cell }: { cell: CalendarCell }) {
-  if (cell.state === "blank") {
-    return <div className="w-10 h-14" aria-hidden />
-  }
-
   return (
-    // Each cell is a column: 40px circle + 4px gap + ~10px number = ~54px (~h-14)
-    <div className="relative flex flex-col items-center gap-1 w-10 mx-auto">
-      {/* Connector strips — bridge the gap-2 (8px) to the adjacent lit cells.
-          Positioned at the circle's vertical center (top 20px = half of 40px). */}
-      {cell.connectsLeft && (
-        <span
-          aria-hidden
-          className="absolute top-[20px] -translate-y-1/2 right-full w-2 h-3 bg-[#FBBF24]"
-        />
-      )}
-      {cell.connectsRight && (
-        <span
-          aria-hidden
-          className="absolute top-[20px] -translate-y-1/2 left-full w-2 h-3 bg-[#FBBF24]"
-        />
-      )}
-
-      {cell.state === "lit" && (
-        <>
-          <div className="w-10 h-10 rounded-full bg-[#FBBF24] border-2 border-foreground flex items-center justify-center z-10 relative">
+    <div className="w-full flex flex-col items-center">
+      {/* Circle slot — 40px height */}
+      <div className="h-10 w-full flex items-center justify-center">
+        {cell.state === "lit" && (
+          <div className="w-10 h-10 rounded-full bg-[#FBBF24] border-2 border-foreground flex items-center justify-center">
             <Flame className="w-5 h-5 text-foreground" />
           </div>
-          <span className="text-[10px] font-bold text-foreground/70 leading-none">
-            {cell.dayNumber}
-          </span>
-        </>
-      )}
+        )}
 
-      {cell.state === "missed" && (
-        <>
+        {cell.state === "missed" && (
           <div className="w-10 h-10 rounded-full bg-muted border-2 border-foreground/20 flex items-center justify-center opacity-40">
             <Flame className="w-5 h-5 text-muted-foreground" />
           </div>
+        )}
+
+        {cell.state === "today-pending" && (
+          <div className="relative w-10 h-10 rounded-full border-2 border-[#F472B6] flex items-center justify-center">
+            <span className="absolute inset-0 rounded-full border-2 border-[#F472B6] animate-ping opacity-50" />
+            <span className="text-xs font-bold text-foreground/60">{cell.dayNumber}</span>
+          </div>
+        )}
+
+        {(cell.state === "future" || cell.state === "pre-signup") && (
+          <span className="text-xs text-muted-foreground/40 font-medium">{cell.dayNumber}</span>
+        )}
+      </div>
+
+      {/* Day number slot — 16px */}
+      <div className="h-4 flex items-center justify-center">
+        {cell.state === "lit" && (
+          <span className="text-[10px] font-bold text-foreground/70 leading-none">
+            {cell.dayNumber}
+          </span>
+        )}
+        {cell.state === "missed" && (
           <span className="text-[10px] font-medium text-muted-foreground/40 leading-none">
             {cell.dayNumber}
           </span>
-        </>
-      )}
-
-      {cell.state === "today-pending" && (
-        <>
-          <div className="relative w-10 h-10 rounded-full border-2 border-[#F472B6] flex items-center justify-center">
-            <span className="absolute inset-0 rounded-full border-2 border-[#F472B6] animate-ping opacity-50" />
-            <span className="text-xs font-bold text-foreground/60">
-              {cell.dayNumber}
-            </span>
-          </div>
-          {/* spacer to keep height consistent with lit/missed cells */}
-          <span className="h-[10px]" aria-hidden />
-        </>
-      )}
-
-      {(cell.state === "future" || cell.state === "pre-signup") && (
-        <>
-          <div className="w-10 h-10 flex items-center justify-center">
-            <span className="text-xs text-muted-foreground/40 font-medium">
-              {cell.dayNumber}
-            </span>
-          </div>
-          <span className="h-[10px]" aria-hidden />
-        </>
-      )}
+        )}
+      </div>
     </div>
   )
 }

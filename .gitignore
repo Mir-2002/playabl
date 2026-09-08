@@ -45,3 +45,6 @@ next-env.d.ts
 /.agents/
 /.claude/
 skills-lock.json
+
+# agent reference docs (local-only, not committed)
+/docs/
