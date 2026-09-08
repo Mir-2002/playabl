@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import Link from "next/link"
 import { Music, Flame, Trophy, Activity } from "lucide-react"
 import { getLeaderboard } from "@/app/(app)/leaderboard/actions"
 import { LeaderboardClient } from "@/app/(app)/leaderboard/_components/leaderboard-client"
@@ -7,6 +8,7 @@ import { getStreakStats, getHeatmapData } from "@/app/(app)/home/actions"
 import { ActivityHeatmap } from "@/components/activity-heatmap"
 import { todayInManila } from "@/lib/manila-time"
 import { PointsDisplay } from "@/app/(app)/home/_components/points-display"
+import { NowPlaying } from "@/app/(app)/home/_components/now-playing"
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -60,29 +62,35 @@ export default async function HomePage() {
             {displayName}
           </h1>
         </div>
-        <div className="ml-auto hidden sm:block w-12 h-12 rounded-full bg-[#FBBF24] border-2 border-foreground" />
+        <NowPlaying />
       </div>
 
       {/* Stats grid */}
       <div className="grid sm:grid-cols-2 gap-6">
-        <StatCard
-          icon={<Music className="w-5 h-5 text-white" />}
-          iconBg="bg-primary"
-          label="Total Points"
-          value={
-            <PointsDisplay
-              currentUserId={user.id}
-              initialData={initialLeaderboard}
-              initialPoints={profile?.total_points ?? 0}
-            />
-          }
-          note={
-            profile?.total_points
-              ? "Keep listening to earn more"
-              : "Start listening to earn points"
-          }
-          shadowClass="shadow-hard-violet"
-        />
+        <Link
+          href="/history"
+          aria-label="View listening history"
+          className="block rounded-2xl transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2"
+        >
+          <StatCard
+            icon={<Music className="w-5 h-5 text-white" />}
+            iconBg="bg-primary"
+            label="Total Points"
+            value={
+              <PointsDisplay
+                currentUserId={user.id}
+                initialData={initialLeaderboard}
+                initialPoints={profile?.total_points ?? 0}
+              />
+            }
+            note={
+              profile?.total_points
+                ? "View your listening history"
+                : "Start listening to earn points"
+            }
+            shadowClass="shadow-hard-violet"
+          />
+        </Link>
         <StatCard
           icon={<Flame className="w-5 h-5 text-white" />}
           iconBg="bg-[#F472B6]"

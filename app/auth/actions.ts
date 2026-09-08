@@ -11,7 +11,7 @@ export async function signInWithSpotify() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "spotify",
     options: {
-      scopes: "user-read-recently-played",
+      scopes: "user-read-recently-played user-read-currently-playing",
       redirectTo: `${origin}/auth/callback`,
     },
   })

@@ -79,7 +79,7 @@ Settled design. Portfolio piece, ≤5 users (Spotify Feb-2026 dev-app allowlist 
 ### Tracking engine
 - Server-side cron: **Supabase `pg_cron` → Edge Function** (via `pg_net`), every ~3 min. Free, all-in-Supabase.
 - Per user, poll `GET /me/recently-played` using an `after` cursor (last max `played_at`).
-- **`/recently-played` is the single source of truth.** Spotify's built-in ~30s-to-log rule is the only anti-cheat screen; looped repeats legitimately count (the user is genuinely listening). `/currently-playing` is rejected — it exposes one track at a time and would require per-second polling.
+- **`/recently-played` is the single source of truth.** Spotify's built-in ~30s-to-log rule is the only anti-cheat screen; looped repeats legitimately count (the user is genuinely listening). `/currently-playing` is rejected **for points** — it exposes one track at a time and would require per-second polling, and must never feed `listening_events`/points/aggregates. (It *is* used, read-only, for the cosmetic Now Playing widget — see `docs/01_extended_features.md`.)
 - **Points = full `duration_ms` per logged track.** The endpoint exposes no intra-track progress, so mid-track pauses/scrubs are invisible and accepted. "1 second = 1 point" means points equal the summed duration of logged tracks.
 
 ### Data model

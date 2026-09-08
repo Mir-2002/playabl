@@ -338,7 +338,7 @@ enabled = true
 client_id = "env(SUPABASE_AUTH_EXTERNAL_SPOTIFY_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_EXTERNAL_SPOTIFY_SECRET)"
 redirect_uri = ""
-scopes = "user-read-recently-played"
+scopes = "user-read-recently-played user-read-currently-playing"
 
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.

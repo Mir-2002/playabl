@@ -1,7 +1,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { RecentlyPlayedSchema } from "../_shared/types.ts";
+import {
+  mintSpotifyToken,
+  SpotifyRateLimitError,
+  SpotifyReauthError,
+} from "../_shared/token.ts";
 
-const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SPOTIFY_RECENTLY_PLAYED_URL =
   "https://api.spotify.com/v1/me/player/recently-played";
 
@@ -128,54 +132,38 @@ async function ensureValidToken(account: Account): Promise<string | null> {
 
   console.log(`[poll] user ${account.user_id}: minting new access token`);
 
-  const clientId = Deno.env.get("SPOTIFY_CLIENT_ID")!;
-  const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET")!;
-  const credentials = btoa(`${clientId}:${clientSecret}`);
-
-  const res = await fetch(SPOTIFY_TOKEN_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: `Basic ${credentials}`,
-    },
-    body: new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: account.provider_refresh_token,
-    }),
-  });
-
-  if (res.status === 429) {
-    console.warn(
-      `[poll] user ${account.user_id}: token mint rate limited; skip this tick`,
-    );
-    return null;
-  }
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    if (data?.error === "invalid_grant") {
+  let minted;
+  try {
+    minted = await mintSpotifyToken({
+      refreshToken: account.provider_refresh_token,
+      clientId: Deno.env.get("SPOTIFY_CLIENT_ID")!,
+      clientSecret: Deno.env.get("SPOTIFY_CLIENT_SECRET")!,
+    });
+  } catch (err) {
+    if (err instanceof SpotifyReauthError) {
       console.warn(
         `[poll] user ${account.user_id}: invalid_grant — marking needs_reauth`,
       );
       await markNeedsReauth(account.user_id);
       return null;
     }
-    throw new Error(
-      `Token mint failed ${res.status}: ${JSON.stringify(data)}`,
-    );
+    if (err instanceof SpotifyRateLimitError) {
+      console.warn(
+        `[poll] user ${account.user_id}: token mint rate limited; skip this tick`,
+      );
+      return null;
+    }
+    throw err;
   }
 
-  const newExpiresAt = new Date(Date.now() + data.expires_in * 1000);
-
   const update: Record<string, unknown> = {
-    access_token: data.access_token,
-    expires_at: newExpiresAt.toISOString(),
+    access_token: minted.accessToken,
+    expires_at: minted.expiresAt,
     updated_at: new Date().toISOString(),
   };
   // Spotify may rotate the refresh token; persist it if so.
-  if (data.refresh_token) {
-    update.provider_refresh_token = data.refresh_token;
+  if (minted.rotatedRefreshToken) {
+    update.provider_refresh_token = minted.rotatedRefreshToken;
   }
 
   const { error } = await supabase
@@ -185,7 +173,7 @@ async function ensureValidToken(account: Account): Promise<string | null> {
 
   if (error) throw error;
 
-  return data.access_token as string;
+  return minted.accessToken;
 }
 
 async function markNeedsReauth(userId: string): Promise<void> {
