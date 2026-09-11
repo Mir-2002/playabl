@@ -32,11 +32,8 @@ export async function AppHeader() {
   return (
     <header className="sticky top-0 z-50 bg-white border-b-2 border-foreground shadow-hard">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-        <Link
-          href="/home"
-          className="font-heading font-bold text-xl text-foreground hover:text-primary transition-colors"
-        >
-          Playabl
+        <Link href="/home" className="hover:opacity-80 transition-opacity">
+          <img src="/playabl-banner.svg" alt="Playabl" className="h-16 w-auto" />
         </Link>
 
         {user && (
