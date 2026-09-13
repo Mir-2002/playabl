@@ -4,14 +4,14 @@ import { createClient } from "@/lib/supabase/server"
 import { HISTORY_PAGE_SIZE } from "@/lib/history"
 
 export type HistoryRow = {
-  spotify_track_id: string
+  track_id:   string | null
   track_name: string
-  artist: string
-  duration_ms: number
-  played_at: string
+  artist:     string
+  credited:   boolean
+  played_at:  string
 }
 
-const SELECT = "spotify_track_id, track_name, artist, duration_ms, played_at"
+const SELECT = "track_id, track_name, artist, credited, played_at"
 
 /** First page of the current user's plays, newest first. */
 export async function getHistoryPage(userId: string): Promise<HistoryRow[]> {
@@ -24,13 +24,11 @@ export async function getHistoryPage(userId: string): Promise<HistoryRow[]> {
     .limit(HISTORY_PAGE_SIZE)
 
   if (error) throw new Error(error.message)
-  return data ?? []
+  return (data ?? []) as HistoryRow[]
 }
 
 /**
- * Keyset "load more": the next page of plays strictly older than `cursor` (the
- * last visible row's `played_at`). Keyset over offset because the table grows
- * unbounded and this stays correct and cheap.
+ * Keyset "load more": the next page of plays strictly older than `cursor`.
  */
 export async function getMoreHistory(cursor: string): Promise<HistoryRow[]> {
   const supabase = await createClient()
@@ -48,5 +46,5 @@ export async function getMoreHistory(cursor: string): Promise<HistoryRow[]> {
     .limit(HISTORY_PAGE_SIZE)
 
   if (error) throw new Error(error.message)
-  return data ?? []
+  return (data ?? []) as HistoryRow[]
 }

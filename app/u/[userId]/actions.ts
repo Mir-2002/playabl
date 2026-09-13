@@ -6,12 +6,9 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 import { computeStreaks } from "@/lib/streaks"
-import { toManilaDay, todayInManila } from "@/lib/manila-time"
-import { TZDate } from "@date-fns/tz"
+import { todayInTimezone } from "@/lib/user-time"
 import { subDays } from "date-fns"
 import type { StreakStats, HeatmapDay } from "@/app/(app)/home/actions"
-
-const MANILA = "Asia/Manila"
 
 // ─── Public profile data (service client, runs server-side only) ──────────────
 
@@ -19,7 +16,7 @@ export async function fetchPublicProfile(userId: string) {
   const service = createServiceClient()
   const { data } = await service
     .from("profiles")
-    .select("id, username, avatar_url, total_points, created_at")
+    .select("id, username, avatar_url, total_points, timezone, created_at")
     .eq("id", userId)
     .single()
   return data
@@ -27,38 +24,41 @@ export async function fetchPublicProfile(userId: string) {
 
 export async function fetchPublicStreakStats(userId: string): Promise<StreakStats> {
   const service = createServiceClient()
-  const [{ data: events }, { data: profile }] = await Promise.all([
-    service.from("listening_events").select("played_at").eq("user_id", userId),
-    service.from("profiles").select("created_at").eq("id", userId).single(),
+  const [{ data: activity }, { data: profile }] = await Promise.all([
+    service
+      .from("daily_activity")
+      .select("activity_date")
+      .eq("user_id", userId)
+      .gte("track_count", 1),
+    service.from("profiles").select("timezone, created_at").eq("id", userId).single(),
   ])
 
-  const connectionDay = profile?.created_at ? toManilaDay(profile.created_at) : null
-  const uniqueDays = [
-    ...new Set((events ?? []).map((e) => toManilaDay(e.played_at))),
-  ]
-    .filter((d) => !connectionDay || d >= connectionDay)
+  const timezone   = profile?.timezone ?? "UTC"
+  const today      = todayInTimezone(timezone)
+  const signupDay  = profile?.created_at?.slice(0, 10) ?? today
+
+  const qualifyingDays = (activity ?? [])
+    .map((r) => r.activity_date as string)
+    .filter((d) => d >= signupDay)
     .sort()
 
-  return computeStreaks(uniqueDays, todayInManila())
+  return computeStreaks(qualifyingDays, today)
 }
 
 export async function fetchPublicHeatmapData(userId: string): Promise<HeatmapDay[]> {
-  const service = createServiceClient()
-  const oneYearAgo = subDays(new TZDate(new Date(), MANILA), 371).toISOString()
+  const service    = createServiceClient()
+  const oneYearAgo = subDays(new Date(), 371).toISOString().slice(0, 10)
 
   const { data } = await service
-    .from("listening_events")
-    .select("played_at, duration_ms")
+    .from("daily_activity")
+    .select("activity_date, track_count")
     .eq("user_id", userId)
-    .gte("played_at", oneYearAgo)
+    .gte("activity_date", oneYearAgo)
 
-  const totals = new Map<string, number>()
-  for (const event of data ?? []) {
-    const day = toManilaDay(event.played_at)
-    totals.set(day, (totals.get(day) ?? 0) + event.duration_ms)
-  }
-
-  return Array.from(totals.entries()).map(([date, totalMs]) => ({ date, totalMs }))
+  return (data ?? []).map((r) => ({
+    date:  r.activity_date as string,
+    count: r.track_count,
+  }))
 }
 
 export type FriendshipStatus =

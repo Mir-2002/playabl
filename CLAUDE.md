@@ -1,12 +1,14 @@
 @AGENTS.md
 
 # Playabl
-Playabl is a social listening app connected to Spotify. Users earn points based on verified listening time, maintain listening streaks, view their activity history, compare their rank with other users, and add friends.
+Playabl is a social listening app connected to **Last.fm**. Users earn points based on their scrobbles, maintain listening streaks, view their activity history, compare their rank with other users, and add friends.
+
+> **Migration in progress:** Playabl is mid-migration from Spotify to Last.fm. Phase 1 (auth cutover) is **done**; Phase 2 (cron engine) is being built on `feature/lastfm-cron-engine`. The authoritative specs are `docs/lastfm/phase-1-auth.md`, `docs/lastfm/phase-2-cron-engine.md`, and `docs/lastfm/lastfm-migration.md`. Where this file and those specs disagree, **the phase docs win** — this file describes the target state.
 
 # Key Features
 
 ### Points System
-Players accumulate points based on their listening activity. 1 second of music listend to = 1 point.
+Players accumulate points based on their scrobbles. **1 credited scrobble = 1 point** (Last.fm scrobbles carry no reliable duration). A two-tier anti-cheat cap (per-local-hour + per-local-day) bounds the payoff; over-cap scrobbles are stored but not counted.
 
 ### Ranking
 A ranking system that players can compete to get into.
@@ -20,9 +22,9 @@ A GitHub style heatmap that tracks user's activity. The deeper the shade = more 
 
 # Project MVP
 
-- Allow users to connect their spotify accounts
-- Track verified listening time
-- Convert listening time (seconds) into points
+- Allow users to log in with their Last.fm account
+- Track scrobbles via Last.fm `user.getRecentTracks`
+- Convert credited scrobbles into points (1 scrobble = 1 point, capped)
 - Display a Global All Time Leaderboard
 - Show listening streak and heatmap activity
 - Allow users to add friends
@@ -30,9 +32,9 @@ A GitHub style heatmap that tracks user's activity. The deeper the shade = more 
 # User Stories
 ###  Authentication
 
--   As a user, I want to create a Playabl account using Spotify so that I do not need a separate password.
+-   As a user, I want to create a Playabl account using Last.fm so that I do not need a separate password.
     
--   As a user, I want to disconnect Spotify from Playabl.
+-   As a user, I want to disconnect Last.fm from Playabl.
     
 -   As a user, I want to delete my Playabl account and associated data.
     
@@ -70,42 +72,44 @@ A GitHub style heatmap that tracks user's activity. The deeper the shade = more 
 
 # Architecture
 
-Settled design. Portfolio piece, ≤5 users (Spotify Feb-2026 dev-app allowlist cap) — optimize for a clean full-stack story, not scale. The signature technical detail is the recently-played verification engine.
+Settled design. Portfolio piece, **design target ~1,000 users** (Last.fm `user.getRecentTracks` is public — no per-user OAuth, no allowlist, so the Spotify 5-user cap is gone). The signature technical detail is the **adaptive Last.fm polling engine** with a pure, testable anti-cheat cap.
 
 ### Auth & identity
-- Supabase Auth with **Spotify as the sole OAuth provider**. `config.toml` wires Spotify; `.env.example` documents the creds (placed in `.env.local`). Scope: `user-read-recently-played`.
-- On sign-in, capture `provider_refresh_token` from the session (Supabase surfaces it only at login/refresh and will **not** refresh the Spotify token itself) and upsert it into an RLS-locked `spotify_accounts` table (service-role read only). The cron mints Spotify access tokens directly against `accounts.spotify.com/api/token`.
+- Supabase Auth, **Last.fm as the sole login path** via a hand-rolled web-auth flow (Architecture **B**): Last.fm web-auth → `admin.createUser` shadow user → `generateLink`/`verifyOtp` mints a real Supabase session. **No self-signed JWT** (this stack signs ES256). `auth.users` is retained as the identity anchor; `enable_signup=false`; no passwords. Full spec: `docs/lastfm/phase-1-auth.md`.
+- Last.fm identity maps to `auth.users` via **`lastfm_accounts`** (username + session key `lastfm_sk`), RLS-locked to service-role only. The `sk` is stored but not needed for the read-only public polling.
 
 ### Tracking engine
-- Server-side cron: **Supabase `pg_cron` → Edge Function** (via `pg_net`), every ~3 min. Free, all-in-Supabase.
-- Per user, poll `GET /me/recently-played` using an `after` cursor (last max `played_at`).
-- **`/recently-played` is the single source of truth.** Spotify's built-in ~30s-to-log rule is the only anti-cheat screen; looped repeats legitimately count (the user is genuinely listening). `/currently-playing` is rejected **for points** — it exposes one track at a time and would require per-second polling, and must never feed `listening_events`/points/aggregates. (It *is* used, read-only, for the cosmetic Now Playing widget — see `docs/01_extended_features.md`.)
-- **Points = full `duration_ms` per logged track.** The endpoint exposes no intra-track progress, so mid-track pauses/scrubs are invisible and accepted. "1 second = 1 point" means points equal the summed duration of logged tracks.
+- Server-side cron: **Supabase `pg_cron` → Edge Function** (via `pg_net`), **1-min base tick**. Free, all-in-Supabase.
+- **Adaptive polling:** each tick selects only users whose `next_poll_at` is due (up to a per-tick request budget), then per user polls `user.getRecentTracks` with a `from` cursor. Interval backs off exponentially on empty polls (floor 3 min → cap 60 min) and resets to the floor on new scrobbles — this keeps the single Supabase egress IP under Last.fm's ~5 req/s guideline at 1k users.
+- **`user.getRecentTracks` is the single source of truth.** The currently-playing item (`@attr.nowplaying`, no `date`) is skipped for points. Scrobbles carry **no duration** — points are not duration-based.
+- **Points = 1 per credited scrobble.** A two-tier cap (per user's local hour + local day, from `anticheat_config`) decides credited-ness; over-cap scrobbles are stored (`credited=false`) but not counted. Cap logic lives in **pure TypeScript** in the edge function (Vitest-tested), not a SQL trigger.
 
 ### Data model
-- `listening_events (user_id, spotify_track_id, track_name, artist, duration_ms, played_at)` — **unique `(user_id, played_at)`**, inserts `ON CONFLICT DO NOTHING`. This is the idempotency key that dedupes overlapping poll windows and is the substrate for points, heatmap, and streaks.
-- `profiles.total_points` / `total_ms` — **materialized via an `AFTER INSERT` trigger** on `listening_events`.
-- `spotify_accounts` — Spotify tokens, service-role only.
+- `listening_events (user_id, track_id, track_name, artist, played_at, credited)` — **unique `(user_id, played_at)`**, inserts `ON CONFLICT DO NOTHING RETURNING *`. The idempotency key dedupes overlapping poll windows; `credited` is the source of truth for the hourly cap. Pruned to the **last 100 rows/user** (retention — keeps the DB under the free-tier 500 MB cap).
+- `daily_activity (user_id, activity_date, track_count, points)` — permanent per-**local-day** aggregate; the heatmap/streak source. Written by the edge function; public-read RLS.
+- `profiles.total_points` (credited scrobble count), plus **`profiles.timezone`** (IANA, default `'UTC'`) — written by the edge function on each credited batch.
+- `lastfm_accounts` — username + `lastfm_sk` + poll state (`last_uts` watermark, `next_poll_at`, `consecutive_empty_polls`); service-role only.
+- `anticheat_config` — singleton, tunable caps (`hourly_cap`, `daily_cap`); `flagged_accounts` view for manual review.
 - Friends via a `friend_requests` / friendship table with `pending` / `accepted` states. **No block.**
 
 ### Derived features
-- **Leaderboard:** global all-time, `ORDER BY total_points DESC`, tie-break `created_at ASC`. No self-rank lookup (moot at ≤5 users).
-- **Day boundary:** fixed **`Asia/Manila`** for all bucketing — not a global launch, so no per-user timezone.
-- **Heatmap:** GitHub-style, per-Manila-day sum of activity.
-- **Streaks:** a day qualifies with **≥1 credited track**. Current streak = consecutive qualifying days (counts today if it qualifies, else runs through yesterday and breaks on a missed yesterday). Longest = max historical run. No grace/freezes.
+- **Leaderboard:** global all-time, `ORDER BY total_points DESC`, tie-break `created_at ASC`.
+- **Day boundary:** **per-user IANA timezone** (`profiles.timezone`, default `'UTC'`), bucketed **once at write time** in the edge function, so `daily_activity.activity_date` is already the user's local day and read paths stay timezone-agnostic. DST is handled by `@date-fns/tz`; zone changes apply forward-only (no history recompute).
+- **Heatmap:** GitHub-style, reads `daily_activity.track_count` per local day.
+- **Streaks:** a day qualifies with **≥1 credited scrobble** (`daily_activity.track_count >= 1`). Current streak = consecutive qualifying days ("today" computed in the user's timezone). Longest = max historical run. No grace/freezes.
 
 ### Profile & friends
 - **One public profile page that doubles as the invite link.** Public (anon) RLS `SELECT` on safe columns (display name, avatar, points, streak, heatmap). Opening the link shows the user's stats plus an **Add friend** button that sends a request when the viewer is logged in; the recipient accepts/declines. Private columns (email, tokens) are locked to self / service-role.
-- Account lifecycle: disconnect Spotify, delete account + associated data.
+- Account lifecycle: disconnect Last.fm, delete account + associated data.
 
 # Stack & Workflows
 
-Settled design, second phase. Library and workflow choices for the architecture above. Bias: leanest idiomatic Next 16 path, no infrastructure that ≤5 users can't justify.
+Settled design, second phase. Library and workflow choices for the architecture above. Bias: leanest idiomatic Next 16 path.
 
 ### Data flow
 - **RSC + Server Actions are the default.** Fetch on the server with the Supabase server client; most data never touches a client cache. **TanStack Query is scoped to the two live surfaces only** — the leaderboard and the friend-request inbox (interval refetch + optimistic mutations). No client API layer for anything RSC can serve.
 - **Mutations are formless Server Actions.** Friend send/accept/reject and profile edits are `action` functions using `useActionState`; **Zod parses the `FormData` inside the action**. No form library — inputs are too small to justify one.
-- **Leaderboard/friends liveness = TanStack Query `refetchInterval` (~30–60s), not Supabase Realtime.** The cron writes at most every ~3 min, so a websocket earns nothing.
+- **Leaderboard/friends liveness = TanStack Query `refetchInterval` (~30–60s), not Supabase Realtime.** The cron writes at most every few minutes per active user, so a websocket earns nothing.
 
 ### Supabase clients & auth
 - **`@supabase/ssr`** with three client factories (browser, server-component, route-handler/action) + Next **middleware** to refresh the auth cookie per request. (`auth-helpers` is deprecated — do not use.)
@@ -113,32 +117,34 @@ Settled design, second phase. Library and workflow choices for the architecture 
 
 ### Types & validation
 - **Generated DB types are the source for internal query results** (`supabase gen types typescript --local > lib/database.types.ts`, committed, regenerated after every schema change).
-- **Zod only at untrusted boundaries** — the Spotify API response and user input. Zod does **not** mirror the whole DB.
+- **Zod only at untrusted boundaries** — the Last.fm API response and user input. Zod does **not** mirror the whole DB.
 - **Typed env via `@t3-oss/env-nextjs`** — the server/client split keeps the service-role key from ever leaking client-side.
 
 ### Engine (Edge Function)
-- Edge Functions run on **Deno** (URL/`npm:` imports, no `node_modules`).
-- The Spotify recently-played shape and the `listening_events` row shape live in a **shared `supabase/functions/_shared/` module** (Zod schemas) imported by both the Deno function and the Next app — one source of truth for the engine contract.
-- **Raw `fetch`** for both the token mint and `/me/recently-played`, response validated by the shared Zod schema. No Spotify SDK (Deno rules most out anyway).
-- **Token refresh is automatic.** Each tick mints a fresh access token from the stored `provider_refresh_token`; cache `access_token` + `expires_at` on the `spotify_accounts` row and only re-mint when expired. Persist a rotated refresh token if Spotify returns one.
-- **Resilience:** per-user try/catch so one failure never aborts the batch; **`invalid_grant` (revoked consent) → mark the row for re-auth** and surface "reconnect Spotify" in the UI (the only case needing the user back); **`429` → respect `Retry-After`**, skip, catch up next tick; always return 200 so pg_cron doesn't thrash. Sequential polling — no concurrency at this scale.
-- **Time zones:** **date-fns v4 + `@date-fns/tz`** (`TZDate`) for all `Asia/Manila` bucketing — keeps the streak/heatmap math explicit and testable.
+- Edge Functions run on **Deno** (bare/`npm:` imports via a `deno.json` import map, no `node_modules`).
+- **Shared pure modules** in `supabase/functions/_shared/`, imported by both the Deno function and Node/Vitest (bare specifiers, no Deno-only globals): `lastfm.ts` (the `user.getRecentTracks` Zod schema), `credit.ts` (two-tier cap + per-user-timezone bucketing — the centerpiece, fully unit-tested), `backoff.ts` (adaptive interval).
+- **Raw `fetch`** for `user.getRecentTracks`, response validated by the shared Zod schema (single-track-as-object normalized; `nowplaying` filtered; `uts → played_at`). No Last.fm SDK.
+- **No token refresh** — public reads need only `api_key` + username, so polling never fails on auth (no `needs_reauth`). Cursor is the `lastfm_accounts.last_uts` watermark (survives the 100-row prune); polls use a **10-min overlap lookback** + dedupe to catch eventually-consistent late scrobbles; paginates up to 5 pages on catch-up.
+- **Crediting is pure TS:** `INSERT … RETURNING` the genuinely-new rows, feed them (plus current hour/day counts + the user's timezone) to `credit()`, then batch-write `credited` flags, `daily_activity`, and `profiles.total_points`. The **single-writer invariant** (one sequential cron tick) is what makes this safe — do not parallelize per-user work without re-deriving idempotency.
+- **Resilience:** per-user try/catch so one failure never aborts the batch; always return 200 so pg_cron doesn't thrash; per-tick request budget caps req/s. Sequential polling.
+- **Retention:** prune `listening_events` to the newest 100 rows/user, same-tick, after insert+credit.
+- **Time zones:** **date-fns v4 + `@date-fns/tz`** (`TZDate`) for **per-user IANA** bucketing at write time — keeps the streak/heatmap math explicit and testable.
 
 ### UI
 - **shadcn preset** (`base-luma` style, `mist` base color, `@base-ui/react`). **`ui-master` skill invoked once up front** to set direction/tokens, then reused per surface.
-- **Heatmap is a hand-rolled Tailwind CSS grid** over a server-side per-Manila-day aggregate — no heatmap library.
+- **Heatmap is a hand-rolled Tailwind CSS grid** over the `daily_activity` per-local-day aggregate — no heatmap library.
 - **Error UI:** styled root **`not-found.tsx`** (dead/deleted profile invite links 404 cleanly) + root **`error.tsx`**. No granular per-segment boundaries until a surface needs isolation.
 
 ### Account lifecycle
-- **Disconnect Spotify** = null the tokens on `spotify_accounts` (polling stops, profile/points/history kept).
-- **Delete account** = `auth.admin.deleteUser` via a service-role Server Action; **`ON DELETE CASCADE` FKs** on `auth.users.id` from every table (`profiles`, `spotify_accounts`, `listening_events`, `friend_requests`) do the atomic wipe. Hard delete — friend rows vanish from others' lists, the invite link 404s.
+- **Disconnect Last.fm** = null `lastfm_sk` on `lastfm_accounts` (profile/points/history kept). *(Polling uses the public username, so disconnect is primarily a consent gesture; a disconnected account can also be excluded from the poll set.)*
+- **Delete account** = `auth.admin.deleteUser` via a service-role Server Action; **`ON DELETE CASCADE` FKs** on `auth.users.id` from every table (`profiles`, `lastfm_accounts`, `listening_events`, `daily_activity`, `friend_requests`) do the atomic wipe. Hard delete — friend rows vanish from others' lists, the invite link 404s.
 
 ### Migrations & deploy
-- **Migrations are the only source of truth.** Schema, RLS policies, the `AFTER INSERT` trigger, and pg_cron setup all live in `supabase/migrations/` — the whole engine reproducible from the repo. Local dev on the **Supabase local stack** (Docker Postgres).
-- **Next app on Vercel; DB + Edge Function on Supabase cloud.** Spotify client secret + service-role key are **Supabase Edge Function secrets**; Vercel holds only the anon key, URL, and Spotify client ID. Edge Function deployed via `supabase functions deploy` (manual — no GH Action at this scale).
+- **Migrations are the only source of truth.** Schema, RLS policies, and pg_cron setup all live in `supabase/migrations/` — the whole engine reproducible from the repo. Local dev on the **Supabase local stack** (Docker Postgres).
+- **Next app on Vercel; DB + Edge Function on Supabase cloud.** `LASTFM_API_KEY` / `LASTFM_SHARED_SECRET` + service-role key are server secrets (Vercel for the app; Supabase Edge Function secrets / Vault for the cron); Vercel/client holds only the anon key + URL. Edge Function deployed via `supabase functions deploy` (manual — no GH Action at this scale).
 
 #### Cron / Vault setup
-- **The `poll-recently-played` cron command carries no secrets.** The `cron.schedule` in migration `20260906000002` resolves the edge-function URL and service-role key from **Vault at runtime** (`vault.decrypted_secrets`), so the migration is byte-identical local and cloud. `cron.schedule` upserts by name, so every reset re-syncs the job.
+- **The `poll-recently-played` cron command carries no secrets.** The `cron.schedule` (in the Phase 2 engine migration; the old Spotify schedule was torn down in Phase 1) resolves the edge-function URL and service-role key from **Vault at runtime** (`vault.decrypted_secrets`), so the migration is byte-identical local and cloud. `cron.schedule` upserts by name, so every reset re-syncs the job.
 - **Never hardcode the command or set it via a Studio SQL snippet.** A snippet is not a migration — `supabase db reset` reruns migrations only, so a snippet-set command gets silently reverted to whatever the migration says. (This is exactly the bug that once left the job running a `SELECT 1;` no-op after a reset.)
 - **Vault secrets are seeded per-environment, outside migrations:**
   - **Local** — `supabase/seed.sql` inserts `poll_edge_function_url` (`host.docker.internal` URL) and `poll_service_role_key` (the public Supabase *local demo* key, safe to commit). Seeds run on `db reset`, **never** on `db push`, so these stay local.
@@ -146,4 +152,4 @@ Settled design, second phase. Library and workflow choices for the architecture 
 - If a tick fails, check `cron.job_run_details` (job status) and `net._http_response` (HTTP status/body). Missing Vault secrets make the tick **fail loudly** there rather than silently no-op.
 
 ### Testing
-- **Vitest on the engine + Zod schemas** — dedupe idempotency, points = summed duration, Manila streak/day-boundary math. UI verified manually via the `verify`/`run` skills. **No Playwright** yet; add only if the leaderboard/friends flow gets fragile.
+- **Vitest on the engine + Zod schemas** — dedupe idempotency, `1 credited scrobble = 1 point`, hourly/daily cap boundaries, `nowplaying` skip, per-user-timezone day/hour bucketing (incl. a non-UTC boundary + a DST transition), backoff curve. UI verified manually via the `verify`/`run` skills. **No Playwright** yet; add only if the leaderboard/friends flow gets fragile.

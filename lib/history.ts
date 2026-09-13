@@ -6,15 +6,6 @@
 export const HISTORY_PAGE_SIZE = 50
 
 /**
- * Points earned from a single play. "1 second of listening = 1 point", and the
- * endpoint exposes no intra-track progress, so a play is worth its full
- * duration rounded to whole seconds.
- */
-export function pointsForDuration(durationMs: number): number {
-  return Math.round(durationMs / 1000)
-}
-
-/**
  * The keyset cursor for the next "load more" request: the `played_at` of the
  * last (oldest) row currently shown. The server action queries strictly older
  * than this (`played_at < cursor`), so it guarantees no overlap or gap against

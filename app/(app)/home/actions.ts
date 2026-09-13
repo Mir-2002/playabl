@@ -2,11 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { computeStreaks } from "@/lib/streaks"
-import { toManilaDay, todayInManila } from "@/lib/manila-time"
-import { TZDate } from "@date-fns/tz"
+import { todayInTimezone } from "@/lib/user-time"
 import { subDays } from "date-fns"
-
-const MANILA = "Asia/Manila"
 
 export type StreakStats = {
   currentStreak: number
@@ -15,42 +12,50 @@ export type StreakStats = {
 
 export async function getStreakStats(userId: string): Promise<StreakStats> {
   const supabase = await createClient()
-  const [{ data: events }, { data: profile }] = await Promise.all([
-    supabase.from("listening_events").select("played_at").eq("user_id", userId),
-    supabase.from("profiles").select("created_at").eq("id", userId).single(),
+  const [{ data: activity }, { data: profile }] = await Promise.all([
+    supabase
+      .from("daily_activity")
+      .select("activity_date")
+      .eq("user_id", userId)
+      .gte("track_count", 1),
+    supabase.from("profiles").select("timezone, created_at").eq("id", userId).single(),
   ])
 
-  const connectionDay = profile?.created_at ? toManilaDay(profile.created_at) : null
-
-  const uniqueDays = [
-    ...new Set((events ?? []).map((e) => toManilaDay(e.played_at))),
-  ]
-    .filter((d) => !connectionDay || d >= connectionDay)
+  const timezone      = profile?.timezone ?? "UTC"
+  const today         = todayInTimezone(timezone)
+  const signupDay     = profile?.created_at?.slice(0, 10) ?? today
+  const qualifyingDays = (activity ?? [])
+    .map((r) => r.activity_date as string)
+    .filter((d) => d >= signupDay)
     .sort()
 
-  return computeStreaks(uniqueDays, todayInManila())
+  return computeStreaks(qualifyingDays, today)
 }
 
 export type HeatmapDay = {
-  date: string
-  totalMs: number
+  date:  string
+  count: number
 }
 
 export async function getHeatmapData(userId: string): Promise<HeatmapDay[]> {
-  const supabase = await createClient()
-  const oneYearAgo = subDays(new TZDate(new Date(), MANILA), 371).toISOString()
+  const supabase  = await createClient()
+  const oneYearAgo = subDays(new Date(), 371).toISOString().slice(0, 10)
 
   const { data } = await supabase
-    .from("listening_events")
-    .select("played_at, duration_ms")
+    .from("daily_activity")
+    .select("activity_date, track_count")
     .eq("user_id", userId)
-    .gte("played_at", oneYearAgo)
+    .gte("activity_date", oneYearAgo)
 
-  const totals = new Map<string, number>()
-  for (const event of data ?? []) {
-    const day = toManilaDay(event.played_at)
-    totals.set(day, (totals.get(day) ?? 0) + event.duration_ms)
-  }
+  return (data ?? []).map((r) => ({
+    date:  r.activity_date as string,
+    count: r.track_count,
+  }))
+}
 
-  return Array.from(totals.entries()).map(([date, totalMs]) => ({ date, totalMs }))
+export async function setTimezone(tz: string): Promise<void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  await supabase.from("profiles").update({ timezone: tz }).eq("id", user.id)
 }

@@ -34,6 +34,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      anticheat_config: {
+        Row: {
+          daily_cap: number
+          hourly_cap: number
+          id: number
+        }
+        Insert: {
+          daily_cap?: number
+          hourly_cap?: number
+          id?: number
+        }
+        Update: {
+          daily_cap?: number
+          hourly_cap?: number
+          id?: number
+        }
+        Relationships: []
+      }
+      daily_activity: {
+        Row: {
+          activity_date: string
+          id: string
+          points: number
+          track_count: number
+          user_id: string
+        }
+        Insert: {
+          activity_date: string
+          id?: string
+          points?: number
+          track_count?: number
+          user_id: string
+        }
+        Update: {
+          activity_date?: string
+          id?: string
+          points?: number
+          track_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       friend_requests: {
         Row: {
           created_at: string
@@ -60,23 +102,32 @@ export type Database = {
       }
       lastfm_accounts: {
         Row: {
+          consecutive_empty_polls: number
           created_at: string
+          last_uts: number | null
           lastfm_sk: string | null
           lastfm_user: string
+          next_poll_at: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          consecutive_empty_polls?: number
           created_at?: string
+          last_uts?: number | null
           lastfm_sk?: string | null
           lastfm_user: string
+          next_poll_at?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          consecutive_empty_polls?: number
           created_at?: string
+          last_uts?: number | null
           lastfm_sk?: string | null
           lastfm_user?: string
+          next_poll_at?: string
           updated_at?: string
           user_id?: string
         }
@@ -86,30 +137,30 @@ export type Database = {
         Row: {
           artist: string
           created_at: string
-          duration_ms: number
+          credited: boolean
           id: string
           played_at: string
-          spotify_track_id: string
+          track_id: string | null
           track_name: string
           user_id: string
         }
         Insert: {
           artist: string
           created_at?: string
-          duration_ms: number
+          credited?: boolean
           id?: string
           played_at: string
-          spotify_track_id: string
+          track_id?: string | null
           track_name: string
           user_id: string
         }
         Update: {
           artist?: string
           created_at?: string
-          duration_ms?: number
+          credited?: boolean
           id?: string
           played_at?: string
-          spotify_track_id?: string
+          track_id?: string | null
           track_name?: string
           user_id?: string
         }
@@ -120,7 +171,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           id: string
-          total_ms: number
+          timezone: string
           total_points: number
           username: string | null
         }
@@ -128,7 +179,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id: string
-          total_ms?: number
+          timezone?: string
           total_points?: number
           username?: string | null
         }
@@ -136,7 +187,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id?: string
-          total_ms?: number
+          timezone?: string
           total_points?: number
           username?: string | null
         }
@@ -144,7 +195,16 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      flagged_accounts: {
+        Row: {
+          lastfm_user: string | null
+          total_events: number | null
+          total_points: number | null
+          uncredited_events: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { Music } from "lucide-react"
 import { getMoreHistory, type HistoryRow } from "../actions"
-import { hasMorePages, keysetCursor, pointsForDuration } from "@/lib/history"
+import { hasMorePages, keysetCursor } from "@/lib/history"
 
 export function HistoryList({ initialRows }: { initialRows: HistoryRow[] }) {
   const [rows, setRows] = useState(initialRows)
@@ -41,8 +41,8 @@ export function HistoryList({ initialRows }: { initialRows: HistoryRow[] }) {
               </p>
             </div>
             <div className="flex flex-col items-end flex-shrink-0">
-              <span className="font-heading font-bold text-primary tabular-nums">
-                +{pointsForDuration(row.duration_ms).toLocaleString()}
+              <span className={`font-heading font-bold tabular-nums ${row.credited ? "text-primary" : "text-muted-foreground"}`}>
+                {row.credited ? "+1" : "—"}
               </span>
               <span className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(row.played_at), {

@@ -6,8 +6,9 @@ import { getLeaderboard } from "@/app/(app)/leaderboard/actions"
 import { LeaderboardClient } from "@/app/(app)/leaderboard/_components/leaderboard-client"
 import { getStreakStats, getHeatmapData } from "@/app/(app)/home/actions"
 import { ActivityHeatmap } from "@/components/activity-heatmap"
-import { todayInManila } from "@/lib/manila-time"
+import { todayInTimezone } from "@/lib/user-time"
 import { PointsDisplay } from "@/app/(app)/home/_components/points-display"
+import { TimezoneSync } from "@/app/(app)/home/_components/timezone-sync"
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -21,7 +22,7 @@ export default async function HomePage() {
     await Promise.all([
       supabase
         .from("profiles")
-        .select("username, avatar_url, total_points")
+        .select("username, avatar_url, total_points, timezone")
         .eq("id", user.id)
         .single(),
       getLeaderboard(),
@@ -30,10 +31,13 @@ export default async function HomePage() {
     ])
 
   const displayName = profile?.username ?? "Listener"
-  const today = todayInManila()
+  const timezone    = profile?.timezone ?? "UTC"
+  const today       = todayInTimezone(timezone)
 
   return (
     <div className="space-y-8">
+      <TimezoneSync profileTimezone={timezone} />
+
       {/* Welcome */}
       <div className="bg-white border-2 border-foreground rounded-2xl p-8 shadow-hard-lg flex items-center gap-6">
         {profile?.avatar_url ? (

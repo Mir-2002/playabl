@@ -9,7 +9,7 @@ import {
   fetchPublicHeatmapData,
   fetchFriendshipStatus,
 } from "./actions"
-import { todayInManila } from "@/lib/manila-time"
+import { todayInTimezone } from "@/lib/user-time"
 import { Flame, Music, Activity } from "lucide-react"
 import type { Metadata } from "next"
 
@@ -43,7 +43,7 @@ export default async function PublicProfilePage({ params }: Props) {
 
   const displayName = profile.username ?? "Listener"
   const isOwner = viewer?.id === userId
-  const today = todayInManila()
+  const today = todayInTimezone(profile?.timezone ?? "UTC")
 
   return (
     <div className="min-h-screen bg-background bg-dots">
