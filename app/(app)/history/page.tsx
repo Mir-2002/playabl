@@ -55,7 +55,7 @@ function EmptyState() {
         No tracks yet
       </p>
       <p className="text-muted-foreground text-sm mt-1">
-        Start listening on Spotify — your plays will show up here.
+        Start scrobbling on Last.fm — your plays will show up here.
       </p>
     </div>
   )

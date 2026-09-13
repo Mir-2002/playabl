@@ -8,7 +8,6 @@ import { getStreakStats, getHeatmapData } from "@/app/(app)/home/actions"
 import { ActivityHeatmap } from "@/components/activity-heatmap"
 import { todayInManila } from "@/lib/manila-time"
 import { PointsDisplay } from "@/app/(app)/home/_components/points-display"
-import { NowPlaying } from "@/app/(app)/home/_components/now-playing"
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -62,7 +61,6 @@ export default async function HomePage() {
             {displayName}
           </h1>
         </div>
-        <NowPlaying />
       </div>
 
       {/* Stats grid */}

@@ -2,8 +2,8 @@
 
 import { Menu } from "@base-ui/react/menu"
 import Link from "next/link"
-import { ChevronDown, LogOut, User, Users } from "lucide-react"
-import { signOut } from "@/app/auth/actions"
+import { ChevronDown, LogOut, Trash2, User, Users } from "lucide-react"
+import { signOut, deleteAccount } from "@/app/auth/actions"
 
 interface Props {
   userId: string
@@ -83,6 +83,28 @@ export function UserMenu({ userId, displayName, avatarUrl, pendingCount }: Props
               >
                 <LogOut className="w-4 h-4" aria-hidden />
                 Sign out
+              </Menu.Item>
+            </form>
+
+            <form
+              action={deleteAccount}
+              onSubmit={(e) => {
+                if (
+                  !confirm(
+                    "Delete your account? This permanently removes all your data and cannot be undone.",
+                  )
+                ) {
+                  e.preventDefault()
+                }
+              }}
+            >
+              <Menu.Item
+                nativeButton
+                render={<button type="submit" />}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-destructive/70 cursor-pointer select-none data-[highlighted]:bg-destructive/10 outline-none"
+              >
+                <Trash2 className="w-4 h-4" aria-hidden />
+                Delete account
               </Menu.Item>
             </form>
           </Menu.Popup>

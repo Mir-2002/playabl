@@ -4,8 +4,8 @@ import { z } from "zod"
 export const env = createEnv({
   server: {
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-    SUPABASE_AUTH_EXTERNAL_SPOTIFY_CLIENT_ID: z.string().min(1),
-    SUPABASE_AUTH_EXTERNAL_SPOTIFY_SECRET: z.string().min(1),
+    LASTFM_API_KEY: z.string().min(1),
+    LASTFM_SHARED_SECRET: z.string().min(1),
   },
   client: {
     NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
@@ -14,10 +14,8 @@ export const env = createEnv({
   },
   runtimeEnv: {
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    SUPABASE_AUTH_EXTERNAL_SPOTIFY_CLIENT_ID:
-      process.env.SUPABASE_AUTH_EXTERNAL_SPOTIFY_CLIENT_ID,
-    SUPABASE_AUTH_EXTERNAL_SPOTIFY_SECRET:
-      process.env.SUPABASE_AUTH_EXTERNAL_SPOTIFY_SECRET,
+    LASTFM_API_KEY: process.env.LASTFM_API_KEY,
+    LASTFM_SHARED_SECRET: process.env.LASTFM_SHARED_SECRET,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
