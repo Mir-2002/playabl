@@ -48,6 +48,17 @@ const ResponseSchema = z.object({
 
 const ErrorSchema = z.object({ error: z.number() })
 
+const UserImageSchema = z.object({
+  "#text": z.string(),
+  size: z.enum(["small", "medium", "large", "extralarge"]),
+})
+
+const UserInfoResponseSchema = z.object({
+  user: z.object({
+    image: z.array(UserImageSchema).optional(),
+  }),
+})
+
 // ── Public types ───────────────────────────────────────────────────────────────
 
 export type LastfmTrack = {
@@ -106,4 +117,25 @@ export function parseRecentTracks(raw: unknown): ParseResult {
     tracks,
     totalPages: parseInt(parsed.recenttracks["@attr"].totalPages, 10),
   }
+}
+
+/**
+ * Parse the raw JSON from user.getInfo.
+ *
+ * Picks the largest non-empty avatar URL from the image array.
+ * Returns { avatarUrl: null } on any error or missing image — never throws.
+ */
+export function parseUserInfo(raw: unknown): { avatarUrl: string | null } {
+  if (ErrorSchema.safeParse(raw).success) return { avatarUrl: null }
+
+  const parsed = UserInfoResponseSchema.safeParse(raw)
+  if (!parsed.success) return { avatarUrl: null }
+
+  const images = parsed.data.user.image ?? []
+  for (const size of ["extralarge", "large", "medium", "small"] as const) {
+    const img = images.find((i) => i.size === size)
+    if (img && img["#text"] !== "") return { avatarUrl: img["#text"] }
+  }
+
+  return { avatarUrl: null }
 }

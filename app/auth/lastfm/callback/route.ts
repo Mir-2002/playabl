@@ -4,6 +4,7 @@ import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { env } from "@/lib/env"
+import { parseUserInfo } from "@/supabase/functions/_shared/lastfm"
 
 const LastfmSessionSchema = z.object({
   session: z.object({
@@ -78,6 +79,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=auth_failed`)
   }
 
+  // user.getInfo is a public read — no api_sig required.
+  let avatarUrl: string | null = null
+  try {
+    const infoUrl = new URL("https://ws.audioscrobbler.com/2.0/")
+    infoUrl.searchParams.set("method", "user.getInfo")
+    infoUrl.searchParams.set("user", name)
+    infoUrl.searchParams.set("api_key", env.LASTFM_API_KEY)
+    infoUrl.searchParams.set("format", "json")
+    const infoRes = await fetch(infoUrl.toString())
+    avatarUrl = parseUserInfo(await infoRes.json()).avatarUrl
+  } catch {
+    // avatar failure must never block login
+  }
+
   const service = createServiceClient()
   const email = `${name.toLowerCase()}@lastfm.playabl.local`
 
@@ -91,16 +106,24 @@ export async function GET(request: NextRequest) {
 
   if (existing) {
     userId = existing.user_id
-    await service
-      .from("lastfm_accounts")
-      .update({ lastfm_sk: key, updated_at: new Date().toISOString() })
-      .eq("user_id", userId)
+    await Promise.all([
+      service
+        .from("lastfm_accounts")
+        .update({ lastfm_sk: key, updated_at: new Date().toISOString() })
+        .eq("user_id", userId),
+      avatarUrl !== null
+        ? service
+            .from("profiles")
+            .update({ avatar_url: avatarUrl })
+            .eq("id", userId)
+        : Promise.resolve(),
+    ])
   } else {
     const { data: created, error: createErr } =
       await service.auth.admin.createUser({
         email,
         email_confirm: true,
-        user_metadata: { lastfm_user: name, display_name: name },
+        user_metadata: { lastfm_user: name, display_name: name, avatar_url: avatarUrl },
       })
     if (createErr || !created.user) {
       return NextResponse.redirect(`${origin}/login?error=auth_failed`)
@@ -116,7 +139,7 @@ export async function GET(request: NextRequest) {
     await service.from("profiles").upsert({
       id: userId,
       username: name,
-      avatar_url: null,
+      avatar_url: avatarUrl,
     })
   }
 
