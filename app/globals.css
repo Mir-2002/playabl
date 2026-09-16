@@ -9,6 +9,14 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Motion — ui-master "bouncy, elastic, fun" */
+  --ease-pop:           cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-quart:     cubic-bezier(0.25, 1, 0.5, 1);
+  --dur-fast:           120ms;
+  --dur-base:           220ms;
+  --dur-slow:           380ms;
+  --stagger-step:       45ms;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-plus-jakarta);
@@ -160,9 +168,70 @@
   .shadow-hard-violet {
     box-shadow: 8px 8px 0px 0px #8B5CF6;
   }
+  .shadow-hard-amber {
+    box-shadow: 4px 4px 0px 0px #FBBF24;
+  }
+  .shadow-hard-mint {
+    box-shadow: 4px 4px 0px 0px #34D399;
+  }
   .hover\:shadow-hard-hover:hover {
     box-shadow: 6px 6px 0px 0px #1E293B;
   }
+
+  /* Pop-in entrance — scale + rise, overshoot. Used by StatCard, ListRow, cards. */
+  @keyframes pop-in {
+    0%   { opacity: 0; transform: translateY(8px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0)    scale(1); }
+  }
+  .animate-pop-in {
+    animation: pop-in var(--dur-slow) var(--ease-pop) both;
+    animation-delay: calc(var(--stagger-step) * var(--i, 0));
+  }
+
+  /* Skeleton shimmer sweep — translateX only (no background-position jank). */
+  @keyframes shimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+
+  /* Wiggle — icons on hover (ui-master signature). */
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25%      { transform: rotate(3deg); }
+    75%      { transform: rotate(-3deg); }
+  }
+  .hover-wiggle:hover { animation: wiggle 300ms var(--ease-pop); }
+
+  /* Marquee — pure CSS infinite scroll */
+  @keyframes marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 18s linear infinite;
+  }
+
+  /* Rank-change flash */
+  @keyframes rank-flash {
+    0%, 100% { background-color: transparent; }
+    30%      { background-color: color-mix(in oklch, #FBBF24 25%, transparent); }
+  }
+  .animate-rank-flash {
+    animation: rank-flash 1s var(--ease-out-quart);
+  }
+
+  /* Global reduced-motion kill-switch */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-pop-in,
+    .animate-marquee,
+    .animate-rank-flash,
+    .hover-wiggle:hover,
+    [data-motion] * {
+      animation: none !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   /* Polka dot background pattern */
   .bg-dots {
     background-image: radial-gradient(oklch(0.278 0.025 249 / 0.12) 1.5px, transparent 1.5px);

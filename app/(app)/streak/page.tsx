@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Flame, ArrowLeft } from "lucide-react"
 import { getStreakCalendarData } from "./actions"
 import { StreakCalendar } from "./_components/streak-calendar"
+import { PageHeader } from "@/components/ui/page-header"
 
 export const metadata: Metadata = { title: "Streak — Playabl" }
 
@@ -28,19 +29,12 @@ export default async function StreakPage() {
           <ArrowLeft className="w-4 h-4" />
           Back to home
         </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-foreground bg-[#F472B6] flex items-center justify-center">
-            <Flame className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="font-heading font-extrabold text-2xl text-foreground">
-              Streak
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Your daily listening calendar.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title="Streak"
+          subtitle="Your daily listening calendar."
+          icon={<Flame className="w-5 h-5 text-white" />}
+          iconBg="bg-[#F472B6]"
+        />
       </div>
 
       <StreakHero

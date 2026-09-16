@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { signInWithLastfm } from "@/app/auth/actions"
+import { Button } from "@/components/ui/button"
 
 export default async function LoginPage({
   searchParams,
@@ -57,15 +58,16 @@ export default async function LoginPage({
         )}
 
         {/* Last.fm button */}
-        <form action={signInWithLastfm}>
-          <button
+        <form action={signInWithLastfm} className="w-full">
+          <Button
             type="submit"
-            className="w-full inline-flex items-center justify-center gap-3 px-6 py-3.5 rounded-full font-bold border-2 border-foreground shadow-hard transition-all duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1E293B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_#1E293B]"
+            size="lg"
+            className="w-full"
             style={{ background: "#d51007", color: "#fff" }}
           >
             <LastfmIcon />
             Continue with Last.fm
-          </button>
+          </Button>
         </form>
 
         <p className="text-center text-xs text-muted-foreground mt-6 leading-relaxed">

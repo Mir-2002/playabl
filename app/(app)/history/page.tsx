@@ -5,6 +5,7 @@ import { Music, ArrowLeft } from "lucide-react"
 import { getHistoryPage } from "@/app/(app)/history/actions"
 import { HistoryList } from "@/app/(app)/history/_components/history-list"
 import { todayInTimezone } from "@/lib/user-time"
+import { PageHeader } from "@/components/ui/page-header"
 
 export default async function HistoryPage() {
   const supabase = await createClient()
@@ -32,19 +33,12 @@ export default async function HistoryPage() {
           <ArrowLeft className="w-4 h-4" />
           Back to home
         </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-foreground bg-primary flex items-center justify-center">
-            <Music className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="font-heading font-extrabold text-2xl text-foreground">
-              Listening history
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Every play, and the points it earned.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title="Listening history"
+          subtitle="Every play, and the points it earned."
+          icon={<Music className="w-5 h-5 text-white" />}
+          iconBg="bg-primary"
+        />
       </div>
 
       {rows.length === 0 ? (

@@ -106,7 +106,7 @@ const removeSchema = z.object({
   otherUserId: z.string().uuid(),
 })
 
-export type ActionResult = { error?: string }
+export type ActionResult = { error?: string; toast?: string }
 
 export async function sendFriendRequest(
   _prev: ActionResult,
@@ -133,7 +133,7 @@ export async function sendFriendRequest(
 
   revalidatePath(`/u/${receiverId}`)
   revalidatePath("/friends")
-  return {}
+  return { toast: "Request sent!" }
 }
 
 export async function acceptFriendRequest(
@@ -159,7 +159,7 @@ export async function acceptFriendRequest(
   if (error) return { error: "Could not accept request." }
 
   revalidatePath("/friends")
-  return {}
+  return { toast: "You're now friends!" }
 }
 
 export async function declineFriendRequest(
@@ -185,7 +185,7 @@ export async function declineFriendRequest(
   if (error) return { error: "Could not decline request." }
 
   revalidatePath("/friends")
-  return {}
+  return { toast: "Request declined." }
 }
 
 export async function removeFriend(
@@ -214,5 +214,5 @@ export async function removeFriend(
 
   revalidatePath("/friends")
   revalidatePath(`/u/${otherUserId}`)
-  return {}
+  return { toast: "Friend removed." }
 }

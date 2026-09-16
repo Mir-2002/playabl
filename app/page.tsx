@@ -1,10 +1,12 @@
 import Link from "next/link"
 import { Music, Flame, Trophy } from "lucide-react"
 import { signInWithLastfm } from "@/app/auth/actions"
+import { Button } from "@/components/ui/button"
+import { InViewSection } from "./_components/in-view-section"
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background bg-dots">
+    <div className="min-h-screen bg-background bg-dots overflow-x-hidden">
       {/* Nav */}
       <nav className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
         <span className="font-heading font-bold text-xl text-foreground">
@@ -12,7 +14,7 @@ export default function LandingPage() {
         </span>
         <Link
           href="/login"
-          className="px-4 py-2 rounded-full border-2 border-foreground text-sm font-medium hover:bg-[#FBBF24] transition-colors duration-200"
+          className="px-4 py-2 rounded-full border-2 border-foreground text-sm font-medium hover:bg-[#FBBF24] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Sign in
         </Link>
@@ -20,13 +22,16 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-6 pt-16 pb-24 relative overflow-hidden">
-        {/* Big violet circle decoration */}
+        {/* Blob shape behind headline */}
         <div
-          className="absolute -top-12 -left-16 w-96 h-96 rounded-full -z-10 opacity-20"
-          style={{ background: "#8B5CF6" }}
+          className="absolute -top-16 -left-20 w-[480px] h-[480px] -z-10 opacity-15"
+          style={{
+            background: "#8B5CF6",
+            borderRadius: "60% 40% 70% 30% / 50% 60% 40% 50%",
+          }}
           aria-hidden
         />
-        {/* Amber blob */}
+        {/* Amber circle */}
         <div
           className="absolute top-0 right-24 w-20 h-20 rounded-full border-2 border-foreground -z-10"
           style={{ background: "#FBBF24" }}
@@ -35,7 +40,7 @@ export default function LandingPage() {
 
         <div className="grid md:grid-cols-2 gap-16 items-center">
           {/* Left: headline */}
-          <div>
+          <InViewSection className="animate-pop-in" style={{ "--i": 0 } as React.CSSProperties}>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-foreground bg-white shadow-hard-sm text-xs font-bold uppercase tracking-widest mb-6">
               <span
                 className="w-2 h-2 rounded-full"
@@ -51,14 +56,14 @@ export default function LandingPage() {
               Ranked.
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-sm leading-relaxed">
-              Connect Last.fm, earn points for every track you scrobble, and
+              Connect Last.fm, earn a point for every track you scrobble, and
               compete with friends on the global leaderboard.
             </p>
             <div className="mt-8 flex items-center gap-4 flex-wrap">
               <form action={signInWithLastfm}>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-3 px-6 py-3 rounded-full text-white font-bold border-2 border-foreground shadow-hard transition-all duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1E293B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_#1E293B]"
+                  className="inline-flex items-center gap-3 px-6 py-3 rounded-full text-white font-bold border-2 border-foreground shadow-hard transition-all duration-[--dur-base] ease-[--ease-pop] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-hard-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-hard-sm"
                   style={{ background: "#d51007" }}
                 >
                   <LastfmIcon />
@@ -66,10 +71,10 @@ export default function LandingPage() {
                 </button>
               </form>
             </div>
-          </div>
+          </InViewSection>
 
           {/* Right: decorative card */}
-          <div className="relative hidden md:flex justify-center">
+          <InViewSection className="relative hidden md:flex justify-center animate-pop-in" style={{ "--i": 1 } as React.CSSProperties}>
             <div className="w-72 h-80 bg-white border-2 border-foreground rounded-2xl shadow-hard-lg flex flex-col items-center justify-center gap-4 p-6 relative overflow-hidden">
               <div
                 className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-40"
@@ -95,67 +100,93 @@ export default function LandingPage() {
                 🏆 #3 on leaderboard
               </div>
             </div>
-          </div>
+          </InViewSection>
         </div>
       </section>
 
+      {/* Marquee */}
+      <div className="border-y-2 border-foreground bg-[#FBBF24] py-3 overflow-hidden">
+        <div className="animate-marquee flex whitespace-nowrap">
+          {Array.from({ length: 2 }).map((_, pass) => (
+            <span key={pass} className="flex items-center gap-8 pr-8">
+              {["1 scrobble = 1 point", "Global leaderboard", "Daily streaks", "Activity heatmap", "Connect Last.fm", "Invite your friends", "Earn your rank", "No tricks"].map((kw) => (
+                <span key={kw} className="text-sm font-bold uppercase tracking-widest flex items-center gap-3">
+                  {kw}
+                  <span className="text-foreground/40">✦</span>
+                </span>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
+
       {/* Features */}
       <section className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="font-heading font-bold text-3xl text-center text-foreground mb-12">
-          How Playabl works
-        </h2>
+        <InViewSection>
+          <h2 className="font-heading font-bold text-3xl text-center text-foreground mb-12">
+            How Playabl works
+          </h2>
+        </InViewSection>
         <div className="grid md:grid-cols-3 gap-6">
-          <FeatureCard
-            icon={<Music className="w-5 h-5 text-white" />}
-            iconBg="bg-primary"
-            title="Listen & Earn"
-            description="Every track you scrobble on Last.fm earns you a point automatically."
-            accentColor="#8B5CF6"
-          />
-          <FeatureCard
-            icon={<Flame className="w-5 h-5 text-white" />}
-            iconBg="bg-[#F472B6]"
-            title="Keep Streaks"
-            description="Scrobble at least once daily to build your streak. Miss a day and start over."
-            accentColor="#F472B6"
-          />
-          <FeatureCard
-            icon={<Trophy className="w-5 h-5 text-white" />}
-            iconBg="bg-[#FBBF24]"
-            title="Climb the Ranks"
-            description="Compete on the global all-time leaderboard. Pure listening hours — no tricks."
-            accentColor="#FBBF24"
-          />
+          {[
+            {
+              icon: <Music className="w-5 h-5 text-white" />,
+              iconBg: "bg-primary",
+              title: "Listen & Earn",
+              description: "Earn points for every track you listen to. No tricks, just pure scrobbles.",
+              accentColor: "#8B5CF6",
+              index: 0,
+            },
+            {
+              icon: <Flame className="w-5 h-5 text-white" />,
+              iconBg: "bg-[#F472B6]",
+              title: "Keep Streaks",
+              description: "Scrobble at least once daily to build and maintain your streak. Miss a day and start over.",
+              accentColor: "#F472B6",
+              index: 1,
+            },
+            {
+              icon: <Trophy className="w-5 h-5 text-white" />,
+              iconBg: "bg-[#FBBF24]",
+              title: "Climb the Ranks",
+              description: "Compete on the global all-time leaderboard along with other users.",
+              accentColor: "#FBBF24",
+              index: 2,
+            },
+          ].map((card) => (
+            <InViewSection key={card.title}>
+              <FeatureCard {...card} />
+            </InViewSection>
+          ))}
         </div>
       </section>
 
       {/* Bottom CTA */}
       <section className="max-w-6xl mx-auto px-6 pb-24">
-        <div
-          className="rounded-3xl border-2 border-foreground p-12 text-center"
-          style={{ background: "#34D399" }}
-        >
-          <h2 className="font-heading font-bold text-3xl text-foreground">
-            Ready to prove your taste?
-          </h2>
-          <p className="mt-2 text-lg" style={{ color: "rgba(30,41,59,0.8)" }}>
-            Connect your Last.fm and start earning points today.
-          </p>
-          <form action={signInWithLastfm} className="mt-8 inline-block">
-            <button
-              type="submit"
-              className="inline-flex items-center gap-3 px-7 py-3.5 rounded-full bg-foreground text-white font-bold border-2 border-foreground shadow-hard transition-all duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1E293B] active:translate-x-0.5 active:translate-y-0.5"
-            >
-              Get started &rarr;
-            </button>
-          </form>
-        </div>
+        <InViewSection>
+          <div
+            className="rounded-3xl border-2 border-foreground p-12 text-center"
+            style={{ background: "#34D399" }}
+          >
+            <h2 className="font-heading font-bold text-3xl text-foreground">
+              Ready to prove your taste?
+            </h2>
+            <p className="mt-2 text-lg" style={{ color: "rgba(30,41,59,0.8)" }}>
+              Connect your Last.fm and start earning points today.
+            </p>
+            <form action={signInWithLastfm} className="mt-8 inline-block">
+              <Button type="submit" size="lg">
+                Get started →
+              </Button>
+            </form>
+          </div>
+        </InViewSection>
       </section>
 
       {/* Footer */}
       <footer className="border-t-2 border-border py-8">
         <p className="text-center text-sm text-muted-foreground">
-          Playabl &mdash; built with Last.fm &amp; Supabase
+          Playabl, built by Ahmer.
         </p>
       </footer>
     </div>
@@ -168,15 +199,20 @@ function FeatureCard({
   title,
   description,
   accentColor,
+  index,
 }: {
   icon: React.ReactNode
   iconBg: string
   title: string
   description: string
   accentColor: string
+  index: number
 }) {
   return (
-    <div className="bg-white border-2 border-foreground rounded-2xl p-6 shadow-hard transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:rotate-[-1deg] hover:scale-[1.02]">
+    <div
+      className="bg-white border-2 border-foreground rounded-2xl p-6 shadow-hard animate-pop-in transition-all duration-[--dur-base] ease-[--ease-pop] hover:-translate-y-1 hover:rotate-[-1deg]"
+      style={{ "--i": index } as React.CSSProperties}
+    >
       <div
         className={`w-11 h-11 rounded-full border-2 border-foreground ${iconBg} flex items-center justify-center mb-4`}
       >

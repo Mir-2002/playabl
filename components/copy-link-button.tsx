@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
 import { Check, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 
 interface Props {
   url: string
@@ -10,19 +10,18 @@ interface Props {
 }
 
 export function CopyLinkButton({ url, label = "Copy invite link" }: Props) {
-  const [copied, setCopied] = useState(false)
+  const toast = useToast()
 
   function handleCopy() {
     navigator.clipboard.writeText(url).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      toast.success("Link copied!")
     })
   }
 
   return (
-    <Button variant="outline" size="sm" onClick={handleCopy}>
-      {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
-      {copied ? "Copied!" : label}
+    <Button variant="secondary" size="sm" onClick={handleCopy}>
+      <Copy aria-hidden />
+      {label}
     </Button>
   )
 }
