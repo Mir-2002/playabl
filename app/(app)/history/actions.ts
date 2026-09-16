@@ -7,11 +7,13 @@ export type HistoryRow = {
   track_id:   string | null
   track_name: string
   artist:     string
+  album:      string | null
+  image_url:  string | null
   credited:   boolean
   played_at:  string
 }
 
-const SELECT = "track_id, track_name, artist, credited, played_at"
+const SELECT = "track_id, track_name, artist, album, image_url, credited, played_at"
 
 /** First page of the current user's plays, newest first. */
 export async function getHistoryPage(userId: string): Promise<HistoryRow[]> {

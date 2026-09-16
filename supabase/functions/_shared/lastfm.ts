@@ -7,6 +7,16 @@ const ArtistSchema = z.object({
   mbid: z.string().optional(),
 })
 
+const AlbumSchema = z.object({
+  "#text": z.string(),
+  mbid: z.string().optional(),
+})
+
+const TrackImageSchema = z.object({
+  "#text": z.string(),
+  size: z.enum(["small", "medium", "large", "extralarge"]),
+})
+
 const TrackDateSchema = z.object({
   uts: z.string(),
   "#text": z.string().optional(),
@@ -23,6 +33,8 @@ const LastfmTrackRawSchema = z.object({
   mbid: z.string().optional(),
   date: TrackDateSchema.optional(),
   "@attr": TrackAttrSchema,
+  album: AlbumSchema.optional(),
+  image: z.array(TrackImageSchema).optional(),
 })
 
 const RecentTracksAttrSchema = z.object({
@@ -59,6 +71,26 @@ const UserInfoResponseSchema = z.object({
   }),
 })
 
+// ── Private helpers ────────────────────────────────────────────────────────────
+
+const PLACEHOLDER_FRAGMENT = "2a96cbd8b46e442fc41c2b86b821562f"
+
+function pickImage(images?: { "#text": string; size: string }[]): string | null {
+  if (!images || images.length === 0) return null
+  for (const size of ["extralarge", "large", "medium", "small"]) {
+    const img = images.find((i) => i.size === size)
+    if (img && img["#text"] !== "" && !img["#text"].includes(PLACEHOLDER_FRAGMENT)) {
+      return img["#text"]
+    }
+  }
+  return null
+}
+
+function pickAlbum(album?: { "#text": string }): string | null {
+  const name = album?.["#text"]?.trim()
+  return name || null
+}
+
 // ── Public types ───────────────────────────────────────────────────────────────
 
 export type LastfmTrack = {
@@ -67,6 +99,8 @@ export type LastfmTrack = {
   artist:     string
   played_at:  string  // ISO 8601 UTC
   uts:        number  // unix seconds (used as watermark)
+  album:      string | null
+  image_url:  string | null
 }
 
 export type ParseResult = {
@@ -74,7 +108,16 @@ export type ParseResult = {
   totalPages: number
 }
 
-// ── Parser ─────────────────────────────────────────────────────────────────────
+export type NowPlaying = {
+  isPlaying:  boolean
+  track_name: string
+  artist:     string
+  album:      string | null
+  image_url:  string | null
+  played_at:  string | null  // null while nowplaying; ISO 8601 UTC when idle
+}
+
+// ── Parsers ────────────────────────────────────────────────────────────────────
 
 /**
  * Parse the raw JSON from user.getRecentTracks.
@@ -83,6 +126,7 @@ export type ParseResult = {
  * - Filters out nowplaying items (no date field; not yet scrobbled).
  * - Coerces date.uts (unix-second string) → played_at (ISO 8601 UTC).
  * - Normalises mbid="" → track_id=null.
+ * - Captures album name and largest non-placeholder art URL.
  * - Throws on a Last.fm error envelope or invalid uts.
  */
 export function parseRecentTracks(raw: unknown): ParseResult {
@@ -110,12 +154,50 @@ export function parseRecentTracks(raw: unknown): ParseResult {
         artist:     t.artist["#text"],
         played_at:  new Date(uts * 1000).toISOString(),
         uts,
+        album:      pickAlbum(t.album),
+        image_url:  pickImage(t.image),
       }
     })
 
   return {
     tracks,
     totalPages: parseInt(parsed.recenttracks["@attr"].totalPages, 10),
+  }
+}
+
+/**
+ * Parse the raw JSON from user.getRecentTracks (limit=1) for the now-playing widget.
+ *
+ * Never throws — view-time reads must degrade to null.
+ * - If the first track has @attr.nowplaying → isPlaying=true, played_at=null.
+ * - Otherwise falls back to arr[0] with isPlaying=false and a computed played_at.
+ * - Returns null for empty arrays or unparseable envelopes.
+ */
+export function parseNowPlaying(raw: unknown): NowPlaying | null {
+  const parsed = ResponseSchema.safeParse(raw)
+  if (!parsed.success) return null
+  const arr = Array.isArray(parsed.data.recenttracks.track)
+    ? parsed.data.recenttracks.track
+    : [parsed.data.recenttracks.track]
+  if (arr.length === 0) return null
+
+  const nowplaying = arr.find((t) => t["@attr"]?.nowplaying)
+  const t = nowplaying ?? arr[0]!
+  const isPlaying = Boolean(nowplaying)
+
+  let played_at: string | null = null
+  if (!isPlaying && t.date) {
+    const uts = parseInt(t.date.uts, 10)
+    if (Number.isFinite(uts) && uts > 0) played_at = new Date(uts * 1000).toISOString()
+  }
+
+  return {
+    isPlaying,
+    track_name: t.name,
+    artist:     t.artist["#text"],
+    album:      pickAlbum(t.album),
+    image_url:  pickImage(t.image),
+    played_at,
   }
 }
 

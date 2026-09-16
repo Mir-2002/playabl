@@ -107,9 +107,9 @@ Settled design. Portfolio piece, **design target ~1,000 users** (Last.fm `user.g
 Settled design, second phase. Library and workflow choices for the architecture above. Bias: leanest idiomatic Next 16 path.
 
 ### Data flow
-- **RSC + Server Actions are the default.** Fetch on the server with the Supabase server client; most data never touches a client cache. **TanStack Query is scoped to the two live surfaces only** — the leaderboard and the friend-request inbox (interval refetch + optimistic mutations). No client API layer for anything RSC can serve.
+- **RSC + Server Actions are the default.** Fetch on the server with the Supabase server client; most data never touches a client cache. **TanStack Query is scoped to three live surfaces** — the leaderboard, the friend-request inbox, and the now-playing widget (interval refetch + optimistic mutations). No client API layer for anything RSC can serve.
 - **Mutations are formless Server Actions.** Friend send/accept/reject and profile edits are `action` functions using `useActionState`; **Zod parses the `FormData` inside the action**. No form library — inputs are too small to justify one.
-- **Leaderboard/friends liveness = TanStack Query `refetchInterval` (~30–60s), not Supabase Realtime.** The cron writes at most every few minutes per active user, so a websocket earns nothing.
+- **Leaderboard/friends liveness = TanStack Query `refetchInterval` (~30–60s), not Supabase Realtime.** The cron writes at most every few minutes per active user, so a websocket earns nothing. **Now-playing** uses a 30s `refetchInterval` — it fetches Last.fm live at view time (never the DB).
 
 ### Supabase clients & auth
 - **`@supabase/ssr`** with three client factories (browser, server-component, route-handler/action) + Next **middleware** to refresh the auth cookie per request. (`auth-helpers` is deprecated — do not use.)

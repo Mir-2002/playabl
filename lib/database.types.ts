@@ -135,30 +135,36 @@ export type Database = {
       }
       listening_events: {
         Row: {
+          album: string | null
           artist: string
           created_at: string
           credited: boolean
           id: string
+          image_url: string | null
           played_at: string
           track_id: string | null
           track_name: string
           user_id: string
         }
         Insert: {
+          album?: string | null
           artist: string
           created_at?: string
           credited?: boolean
           id?: string
+          image_url?: string | null
           played_at: string
           track_id?: string | null
           track_name: string
           user_id: string
         }
         Update: {
+          album?: string | null
           artist?: string
           created_at?: string
           credited?: boolean
           id?: string
+          image_url?: string | null
           played_at?: string
           track_id?: string | null
           track_name?: string

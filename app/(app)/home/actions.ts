@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server"
 import { computeStreaks } from "@/lib/streaks"
 import { todayInTimezone } from "@/lib/user-time"
 import { subDays } from "date-fns"
+import { env } from "@/lib/env"
+import { parseNowPlaying } from "../../../supabase/functions/_shared/lastfm"
+import type { NowPlaying } from "../../../supabase/functions/_shared/lastfm"
 
 export type StreakStats = {
   currentStreak: number
@@ -58,4 +61,28 @@ export async function setTimezone(tz: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
   await supabase.from("profiles").update({ timezone: tz }).eq("id", user.id)
+}
+
+export async function getNowPlaying(): Promise<NowPlaying | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data: profile } = await supabase
+    .from("profiles").select("username").eq("id", user.id).single()
+  const username = profile?.username
+  if (!username) return null
+
+  try {
+    const url = new URL("https://ws.audioscrobbler.com/2.0/")
+    url.searchParams.set("method", "user.getRecentTracks")
+    url.searchParams.set("user", username)
+    url.searchParams.set("api_key", env.LASTFM_API_KEY)
+    url.searchParams.set("format", "json")
+    url.searchParams.set("limit", "1")
+    const res = await fetch(url, { cache: "no-store" })
+    if (!res.ok) return null
+    return parseNowPlaying(await res.json())
+  } catch {
+    return null
+  }
 }

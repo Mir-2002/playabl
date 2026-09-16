@@ -126,6 +126,8 @@ async function pollUser(
     artist:     t.artist,
     played_at:  t.played_at,
     credited:   false,
+    album:      t.album,
+    image_url:  t.image_url,
   }))
 
   const { data: insertedRows } = await supabase

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Music, ArrowLeft } from "lucide-react"
 import { getHistoryPage } from "@/app/(app)/history/actions"
 import { HistoryList } from "@/app/(app)/history/_components/history-list"
+import { todayInTimezone } from "@/lib/user-time"
 
 export default async function HistoryPage() {
   const supabase = await createClient()
@@ -13,7 +14,13 @@ export default async function HistoryPage() {
 
   if (!user) redirect("/login")
 
-  const rows = await getHistoryPage(user.id)
+  const [rows, { data: profile }] = await Promise.all([
+    getHistoryPage(user.id),
+    supabase.from("profiles").select("timezone").eq("id", user.id).single(),
+  ])
+
+  const timezone = profile?.timezone ?? "UTC"
+  const today    = todayInTimezone(timezone)
 
   return (
     <div className="space-y-6">
@@ -40,7 +47,11 @@ export default async function HistoryPage() {
         </div>
       </div>
 
-      {rows.length === 0 ? <EmptyState /> : <HistoryList initialRows={rows} />}
+      {rows.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <HistoryList initialRows={rows} timezone={timezone} today={today} />
+      )}
     </div>
   )
 }

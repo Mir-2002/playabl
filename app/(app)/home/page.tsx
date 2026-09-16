@@ -9,6 +9,7 @@ import { ActivityHeatmap } from "@/components/activity-heatmap"
 import { todayInTimezone } from "@/lib/user-time"
 import { PointsDisplay } from "@/app/(app)/home/_components/points-display"
 import { TimezoneSync } from "@/app/(app)/home/_components/timezone-sync"
+import { NowPlaying } from "@/app/(app)/home/_components/now-playing"
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -65,6 +66,7 @@ export default async function HomePage() {
             {displayName}
           </h1>
         </div>
+        <NowPlaying />
       </div>
 
       {/* Stats grid */}
