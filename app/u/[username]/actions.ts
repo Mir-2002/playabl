@@ -12,12 +12,12 @@ import type { StreakStats, HeatmapDay } from "@/app/(app)/home/actions"
 
 // ─── Public profile data (service client, runs server-side only) ──────────────
 
-export async function fetchPublicProfile(userId: string) {
+export async function fetchPublicProfile(username: string) {
   const service = createServiceClient()
   const { data } = await service
     .from("profiles")
     .select("id, username, avatar_url, total_points, timezone, created_at")
-    .eq("id", userId)
+    .ilike("username", username)
     .single()
   return data
 }
@@ -121,7 +121,7 @@ export async function sendFriendRequest(
   if (!parsed.success) return { error: "Invalid request." }
   const { receiverId } = parsed.data
 
-  if (!user) redirect(`/login?next=/u/${receiverId}`)
+  if (!user) redirect("/login")
 
   const { error } = await supabase.from("friend_requests").insert({
     sender_id: user.id,
@@ -131,7 +131,12 @@ export async function sendFriendRequest(
 
   if (error && error.code !== "23505") return { error: "Could not send friend request." }
 
-  revalidatePath(`/u/${receiverId}`)
+  const { data: receiverProfile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", receiverId)
+    .single()
+  if (receiverProfile?.username) revalidatePath(`/u/${receiverProfile.username}`)
   revalidatePath("/friends")
   return { toast: "Request sent!" }
 }
@@ -212,7 +217,12 @@ export async function removeFriend(
 
   if (error) return { error: "Could not remove friend." }
 
+  const { data: otherProfile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", otherUserId)
+    .single()
+  if (otherProfile?.username) revalidatePath(`/u/${otherProfile.username}`)
   revalidatePath("/friends")
-  revalidatePath(`/u/${otherUserId}`)
   return { toast: "Friend removed." }
 }

@@ -10,6 +10,7 @@ import Link from "next/link"
 
 interface Props {
   profileUserId: string
+  username: string
   viewerId: string | null
   isOwner: boolean
   status: FriendshipStatus
@@ -18,6 +19,7 @@ interface Props {
 
 export function FriendButton({
   profileUserId,
+  username,
   viewerId,
   isOwner,
   status,
@@ -26,13 +28,13 @@ export function FriendButton({
   if (isOwner) {
     const url =
       typeof window !== "undefined"
-        ? `${window.location.origin}/u/${profileUserId}`
-        : `/u/${profileUserId}`
+        ? `${window.location.origin}/u/${username}`
+        : `/u/${username}`
     return <CopyLinkButton url={url} />
   }
   if (!viewerId) {
     return (
-      <Link href={`/login?next=/u/${profileUserId}`}>
+      <Link href={`/login?next=/u/${username}`}>
         <Button size="lg">Sign in to add friend</Button>
       </Link>
     )

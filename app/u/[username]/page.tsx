@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation"
+import { notFound, permanentRedirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { AppHeader } from "@/components/app-header"
 import { ActivityHeatmap } from "@/components/activity-heatmap"
@@ -15,35 +15,39 @@ import { StatCard } from "@/components/ui/stat-card"
 import type { Metadata } from "next"
 
 interface Props {
-  params: Promise<{ userId: string }>
+  params: Promise<{ username: string }>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { userId } = await params
-  const profile = await fetchPublicProfile(userId)
+  const { username } = await params
+  const profile = await fetchPublicProfile(username)
   const name = profile?.username ?? "Listener"
   return { title: `${name} — Playabl` }
 }
 
 export default async function PublicProfilePage({ params }: Props) {
-  const { userId } = await params
+  const { username } = await params
 
   const supabase = await createClient()
   const {
     data: { user: viewer },
   } = await supabase.auth.getUser()
 
-  const [profile, streaks, heatmapData, friendship] = await Promise.all([
-    fetchPublicProfile(userId),
-    fetchPublicStreakStats(userId),
-    fetchPublicHeatmapData(userId),
-    fetchFriendshipStatus(userId, viewer?.id),
-  ])
+  const profile = await fetchPublicProfile(username)
 
   if (!profile) notFound()
 
-  const displayName = profile.username ?? "Listener"
-  const isOwner = viewer?.id === userId
+  // Redirect to canonical casing (e.g. /u/rj → /u/RJ)
+  if (profile.username !== username) permanentRedirect(`/u/${profile.username}`)
+
+  const [streaks, heatmapData, friendship] = await Promise.all([
+    fetchPublicStreakStats(profile.id),
+    fetchPublicHeatmapData(profile.id),
+    fetchFriendshipStatus(profile.id, viewer?.id),
+  ])
+
+  const displayName = profile.username
+  const isOwner = viewer?.id === profile.id
   const today = todayInTimezone(profile?.timezone ?? "UTC")
 
   return (
@@ -82,7 +86,8 @@ export default async function PublicProfilePage({ params }: Props) {
 
             <div className="flex-shrink-0 self-start sm:self-auto">
               <FriendButton
-                profileUserId={userId}
+                profileUserId={profile.id}
+                username={profile.username}
                 viewerId={viewer?.id ?? null}
                 isOwner={isOwner}
                 status={friendship.status}

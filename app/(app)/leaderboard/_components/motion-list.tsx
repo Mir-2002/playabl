@@ -1,6 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from "motion/react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import type { LeaderboardEntry } from "../actions"
 
@@ -36,11 +37,14 @@ export function MotionList({ entries, currentUserId, rankChanged }: Props) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.38, ease: [0.34, 1.56, 0.64, 1] }}
               className={cn(
-                "flex items-center gap-4 px-6 py-4",
                 isCurrentUser && "bg-primary/5",
                 didChange && "animate-rank-flash"
               )}
               style={{ "--i": index } as React.CSSProperties}
+            >
+            <Link
+              href={entry.username ? `/u/${entry.username}` : "#"}
+              className="flex items-center gap-4 px-6 py-4 w-full hover:bg-muted/40 transition-colors"
             >
               {/* Rank badge */}
               <div
@@ -94,6 +98,7 @@ export function MotionList({ entries, currentUserId, rankChanged }: Props) {
                 </span>
                 <span className="text-xs text-muted-foreground hidden sm:inline">pts</span>
               </div>
+            </Link>
             </motion.li>
           )
         })}

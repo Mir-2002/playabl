@@ -179,7 +179,7 @@ export type Database = {
           id: string
           timezone: string
           total_points: number
-          username: string | null
+          username: string
         }
         Insert: {
           avatar_url?: string | null
@@ -187,7 +187,7 @@ export type Database = {
           id: string
           timezone?: string
           total_points?: number
-          username?: string | null
+          username: string
         }
         Update: {
           avatar_url?: string | null
@@ -195,7 +195,7 @@ export type Database = {
           id?: string
           timezone?: string
           total_points?: number
-          username?: string | null
+          username?: string
         }
         Relationships: []
       }
