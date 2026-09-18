@@ -1,6 +1,7 @@
 "use client"
 
 import { parseISO, format, subDays, addDays, startOfWeek, isAfter } from "date-fns"
+import { Tooltip } from "@base-ui/react/tooltip"
 import type { HeatmapDay } from "@/app/(app)/home/actions"
 
 interface Props {
@@ -49,6 +50,13 @@ function colorClass(count: number): string {
   return "bg-[#34D399]"
 }
 
+function formatTooltip(date: string, count: number): string {
+  const d = parseISO(date)
+  const label = format(d, "MMM d")
+  if (count === 0) return `No scrobbles · ${label}`
+  return `${count} scrobble${count !== 1 ? "s" : ""} · ${label}`
+}
+
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
 
 export function ActivityHeatmap({ data, today }: Props) {
@@ -65,49 +73,71 @@ export function ActivityHeatmap({ data, today }: Props) {
   })
 
   return (
-    <div className="overflow-x-auto">
-      <div className="relative mb-1">
-        <div className="flex text-[10px] text-muted-foreground" style={{ gap: "3px" }}>
-          {weeks.map((_, col) => {
-            const label = monthLabels.find((m) => m.col === col)
-            return (
-              <div key={col} className="w-3 flex-shrink-0 font-medium">
-                {label ? label.label : ""}
-              </div>
-            )
-          })}
+    <Tooltip.Provider delay={200}>
+      <div className="overflow-x-auto">
+        {/* Month labels */}
+        <div className="relative mb-1">
+          <div className="flex text-[10px] text-muted-foreground" style={{ gap: "3px" }}>
+            {weeks.map((_, col) => {
+              const label = monthLabels.find((m) => m.col === col)
+              return (
+                <div key={col} className="w-3 flex-shrink-0 font-medium">
+                  {label ? label.label : ""}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Week columns with stagger */}
+        <div className="flex" style={{ gap: "3px" }}>
+          {weeks.map((week, col) => (
+            <div
+              key={col}
+              className="flex flex-col animate-pop-in"
+              style={{
+                gap: "3px",
+                "--i": Math.min(col, 13),
+              } as React.CSSProperties}
+            >
+              {week.map((cell, row) => (
+                cell.isPlaceholder ? (
+                  <div key={`${col}-${row}`} className="w-3 h-3 rounded-sm flex-shrink-0 opacity-0" />
+                ) : (
+                  <Tooltip.Root key={`${col}-${row}`}>
+                    <Tooltip.Trigger
+                      render={
+                        <div
+                          className={`w-3 h-3 rounded-sm flex-shrink-0 cursor-default transition-transform duration-[--dur-base] hover:scale-125 ${colorClass(cell.count)}`}
+                        />
+                      }
+                      aria-label={formatTooltip(cell.date, cell.count)}
+                    />
+                    <Tooltip.Portal>
+                      <Tooltip.Positioner sideOffset={6}>
+                        <Tooltip.Popup className="z-50 rounded-lg border-2 border-foreground bg-card px-2.5 py-1.5 text-xs font-medium text-foreground shadow-hard-sm animate-in fade-in zoom-in-95 duration-[--dur-fast]">
+                          {formatTooltip(cell.date, cell.count)}
+                        </Tooltip.Popup>
+                      </Tooltip.Positioner>
+                    </Tooltip.Portal>
+                  </Tooltip.Root>
+                )
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-1.5 mt-3 justify-end">
+          <span className="text-[10px] text-muted-foreground">Less</span>
+          {["bg-muted", "bg-[#34D399]/30", "bg-[#34D399]/55", "bg-[#34D399]/80", "bg-[#34D399]"].map(
+            (cls) => (
+              <div key={cls} className={`w-3 h-3 rounded-sm ${cls}`} />
+            ),
+          )}
+          <span className="text-[10px] text-muted-foreground">More</span>
         </div>
       </div>
-
-      <div className="flex" style={{ gap: "3px" }}>
-        {weeks.map((week, col) => (
-          <div key={col} className="flex flex-col" style={{ gap: "3px" }}>
-            {week.map((cell, row) => (
-              <div
-                key={`${col}-${row}`}
-                className={`w-3 h-3 rounded-sm flex-shrink-0 ${
-                  cell.isPlaceholder ? "opacity-0" : colorClass(cell.count)
-                }`}
-                title={
-                  cell.isPlaceholder || cell.count === 0
-                    ? cell.date
-                    : `${cell.date} — ${cell.count} scrobble${cell.count !== 1 ? "s" : ""}`
-                }
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-1.5 mt-3 justify-end">
-        <span className="text-[10px] text-muted-foreground">Less</span>
-        {["bg-muted", "bg-[#34D399]/30", "bg-[#34D399]/55", "bg-[#34D399]/80", "bg-[#34D399]"].map(
-          (cls) => (
-            <div key={cls} className={`w-3 h-3 rounded-sm ${cls}`} />
-          ),
-        )}
-        <span className="text-[10px] text-muted-foreground">More</span>
-      </div>
-    </div>
+    </Tooltip.Provider>
   )
 }

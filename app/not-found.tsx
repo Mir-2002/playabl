@@ -15,9 +15,17 @@ export default function NotFound() {
         aria-hidden
       />
 
-      <div className="w-full max-w-sm bg-white border-2 border-foreground rounded-2xl shadow-hard-lg p-10 text-center relative z-10">
+      <div className="w-full max-w-sm bg-white border-2 border-foreground rounded-2xl shadow-hard-lg p-10 text-center relative z-10 animate-pop-in">
+        {/* Icon in circle */}
+        <div
+          className="w-16 h-16 rounded-full border-2 border-foreground mx-auto mb-4 flex items-center justify-center font-heading font-extrabold text-2xl text-white"
+          style={{ background: "#8B5CF6", boxShadow: "4px 4px 0px 0px #1E293B" }}
+          aria-hidden
+        >
+          ?
+        </div>
         <p
-          className="font-heading font-extrabold text-7xl mb-0"
+          className="font-heading font-extrabold text-6xl mb-0"
           style={{ color: "#8B5CF6" }}
         >
           404
@@ -30,7 +38,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-white font-bold border-2 border-foreground shadow-hard text-sm hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1E293B] transition-all duration-200"
+          className="h-10 gap-1.5 px-4 inline-flex items-center justify-center rounded-full border-2 border-foreground bg-primary text-primary-foreground text-sm font-bold shadow-hard hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-hard-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-hard-sm transition-all duration-[--dur-base] ease-[--ease-pop] focus-visible:ring-3 focus-visible:ring-ring/30"
         >
           ← Back to Playabl
         </Link>

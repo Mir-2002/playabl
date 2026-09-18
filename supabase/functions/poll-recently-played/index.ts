@@ -5,9 +5,10 @@ import { computeNextInterval } from "../_shared/backoff.ts"
 import { format } from "date-fns"
 import { TZDate } from "@date-fns/tz"
 
-const LOOKBACK       = 600   // seconds — overlap window to catch late scrobbles
-const MAX_PAGES      = 5     // max pages to paginate per user per tick
-const PER_TICK_BUDGET = 180  // max users to poll per tick
+const LOOKBACK         = 600   // seconds — overlap window on existing watermark
+const INITIAL_LOOKBACK = 86400 // 24 h on first poll (last_uts is null)
+const MAX_PAGES        = 5     // max pages to paginate per user per tick
+const PER_TICK_BUDGET  = 180   // max users to poll per tick
 
 const LASTFM_API = "https://ws.audioscrobbler.com/2.0/"
 
@@ -73,7 +74,9 @@ async function pollUser(
 
   const timezone   = profile?.timezone   ?? "UTC"
   const nowSeconds = Math.floor(Date.now() / 1000)
-  const fromUts    = (last_uts ?? nowSeconds) - LOOKBACK
+  const fromUts    = last_uts !== null
+    ? last_uts - LOOKBACK
+    : nowSeconds - INITIAL_LOOKBACK
 
   // ── Fetch tracks from Last.fm ─────────────────────────────────────────────
 

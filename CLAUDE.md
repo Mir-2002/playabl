@@ -3,7 +3,7 @@
 # Playabl
 Playabl is a social listening app connected to **Last.fm**. Users earn points based on their scrobbles, maintain listening streaks, view their activity history, compare their rank with other users, and add friends.
 
-> **Migration in progress:** Playabl is mid-migration from Spotify to Last.fm. Phase 1 (auth cutover) is **done**; Phase 2 (cron engine) is being built on `feature/lastfm-cron-engine`. The authoritative specs are `docs/lastfm/phase-1-auth.md`, `docs/lastfm/phase-2-cron-engine.md`, and `docs/lastfm/lastfm-migration.md`. Where this file and those specs disagree, **the phase docs win** — this file describes the target state.
+> **Migration status:** Phase 1 (auth cutover), Phase 2 (cron engine), Phase 3 (now-playing widget + history enrichment), and Phase 4 (UI polish) are all **done**. The authoritative specs are `docs/lastfm/phase-1-auth.md`, `docs/lastfm/phase-2-cron-engine.md`, `docs/lastfm/phase-3-nowplaying-history.md`, and `docs/lastfm/phase-4-ui-polish.md`. Where this file and those specs disagree, **the phase docs win** — this file describes the target state.
 
 # Key Features
 
@@ -131,9 +131,13 @@ Settled design, second phase. Library and workflow choices for the architecture 
 - **Time zones:** **date-fns v4 + `@date-fns/tz`** (`TZDate`) for **per-user IANA** bucketing at write time — keeps the streak/heatmap math explicit and testable.
 
 ### UI
-- **shadcn preset** (`base-luma` style, `mist` base color, `@base-ui/react`). **`ui-master` skill invoked once up front** to set direction/tokens, then reused per surface.
+- **shadcn preset** (`base-luma` style, `mist` base color, `@base-ui/react`). **`ui-master` skill invoked once up front** to set direction/tokens, then reused per surface. Full UI polish completed in Phase 4 — see `docs/lastfm/phase-4-ui-polish.md`.
+- **Motion:** `motion` package (React 19-ready framer-motion successor) is installed but scoped to **exactly 2 dynamically-imported client leaves**: `AnimatedNumber` (points counter tween) and `MotionList` (leaderboard FLIP reorder). Do not add `motion` imports to server components or eagerly-loaded client modules.
+- **Toast feedback:** `@base-ui/react/toast` — `Toast.createToastManager()` singleton in `hooks/use-toast.ts`, `Toast.Provider` in `components/providers.tsx`. Use `useToast()` for all user feedback; do not add a second toast library.
+- **Shared UI primitives** in `components/ui/`: `StatCard`, `ListRow`, `SectionHeading`, `EmptyState`, `Skeleton` (+ presets), `PageHeader`. Use these before reaching for inline markup.
 - **Heatmap is a hand-rolled Tailwind CSS grid** over the `daily_activity` per-local-day aggregate — no heatmap library.
 - **Error UI:** styled root **`not-found.tsx`** (dead/deleted profile invite links 404 cleanly) + root **`error.tsx`**. No granular per-segment boundaries until a surface needs isolation.
+- **Skeletons + loading.tsx** exist for all 5 major routes (home, leaderboard, streak, history, profile). Each skeleton matches its page layout to avoid CLS.
 
 ### Account lifecycle
 - **Disconnect Last.fm** = null `lastfm_sk` on `lastfm_accounts` (profile/points/history kept). *(Polling uses the public username, so disconnect is primarily a consent gesture; a disconnected account can also be excluded from the poll set.)*
