@@ -1,6 +1,6 @@
 "use client"
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { QueryClient, QueryClientProvider, QueryCache } from "@tanstack/react-query"
 import { useState } from "react"
 import { Toast } from "@base-ui/react/toast"
 import { toastManager } from "@/hooks/use-toast"
@@ -10,9 +10,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        // Cap retries (default is 3× with silent exponential backoff) and log
+        // query failures so a persistent Last.fm / DB outage is observable
+        // client-side instead of retrying invisibly forever.
+        queryCache: new QueryCache({
+          onError: (error, query) =>
+            console.error("[query]", query.queryKey, error),
+        }),
         defaultOptions: {
           queries: {
             staleTime: 30_000,
+            retry: 2,
+            retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30_000),
           },
         },
       })

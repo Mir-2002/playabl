@@ -17,7 +17,14 @@ export default async function FriendsPage() {
 
   if (!user) redirect("/login")
 
-  const initialData = await getFriendsData(user.id)
+  const [initialData, { data: profile }] = await Promise.all([
+    getFriendsData(user.id),
+    supabase.from("profiles").select("username").eq("id", user.id).single(),
+  ])
+
+  // Invite links are the public username slug — a /u/<uuid> path 404s since the
+  // slug migration removed the UUID fallback.
+  const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/u/${profile?.username ?? ""}`
 
   return (
     <div className="space-y-6">
@@ -26,11 +33,11 @@ export default async function FriendsPage() {
         subtitle="Share your profile link to invite friends."
         icon={<Users className="w-5 h-5 text-white" />}
         iconBg="bg-[#F472B6]"
-        action={<CopyLinkButton url={`${process.env.NEXT_PUBLIC_SITE_URL}/u/${user.id}`} />}
+        action={<CopyLinkButton url={inviteUrl} />}
       />
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-mono text-xs bg-muted px-2 py-1.5 rounded border border-foreground/10 truncate max-w-full">
-          {process.env.NEXT_PUBLIC_SITE_URL}/u/{user.id}
+          {inviteUrl}
         </span>
       </div>
       <FriendsClient viewerId={user.id} initialData={initialData} />

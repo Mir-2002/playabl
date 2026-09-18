@@ -1,5 +1,6 @@
 import { format } from "date-fns"
 import { TZDate } from "@date-fns/tz"
+import { safeTimezone } from "./timezone.ts"
 
 export type ScrobbleRow = { id: string; played_at: string }
 
@@ -35,6 +36,7 @@ export function credit(
   dailyCap: number,
   timezone: string,
 ): CreditResult {
+  const tz         = safeTimezone(timezone)
   const hourCounts = new Map(existingHourCounts)
   const dayCounts  = new Map(existingDayCounts)
   const seenIds    = new Set<string>()
@@ -51,7 +53,7 @@ export function credit(
     if (seenIds.has(row.id)) continue
     seenIds.add(row.id)
 
-    const tzDate      = new TZDate(new Date(row.played_at), timezone)
+    const tzDate      = new TZDate(new Date(row.played_at), tz)
     const dayKey      = format(tzDate, "yyyy-MM-dd")
     const hourKey     = format(tzDate, "yyyy-MM-dd'T'HH")
     const hourCount   = hourCounts.get(hourKey) ?? 0

@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2"
 import { parseRecentTracks } from "../_shared/lastfm.ts"
 import { credit } from "../_shared/credit.ts"
 import { computeNextInterval } from "../_shared/backoff.ts"
+import { safeTimezone } from "../_shared/timezone.ts"
 import { format } from "date-fns"
 import { TZDate } from "@date-fns/tz"
 
@@ -9,6 +10,19 @@ const LOOKBACK         = 600   // seconds — overlap window on existing waterma
 const INITIAL_LOOKBACK = 86400 // 24 h on first poll (last_uts is null)
 const MAX_PAGES        = 5     // max pages to paginate per user per tick
 const PER_TICK_BUDGET  = 180   // max users to poll per tick
+const FETCH_TIMEOUT_MS = 8000  // per-request deadline — a hung socket must not stall the tick
+const ERROR_BACKOFF    = 900   // seconds — penalty next_poll_at on 429/5xx (no Retry-After)
+
+// Thrown on a Last.fm rate-limit / server error so the per-user catch can log
+// it and, for a 429, cool down the rest of the tick.
+class LastfmBackoffError extends Error {
+  rateLimited: boolean
+  constructor(message: string, rateLimited: boolean) {
+    super(message)
+    this.name = "LastfmBackoffError"
+    this.rateLimited = rateLimited
+  }
+}
 
 const LASTFM_API = "https://ws.audioscrobbler.com/2.0/"
 
@@ -23,27 +37,44 @@ Deno.serve(async () => {
 
   const apiKey = Deno.env.get("LASTFM_API_KEY")!
 
-  const { data: config } = await supabase
+  const { data: config, error: configError } = await supabase
     .from("anticheat_config")
     .select("hourly_cap, daily_cap")
     .eq("id", 1)
     .single()
 
+  // A failed config read must be loud, not a silent fall back to hardcoded
+  // caps that may differ from tuned production values (would mis-credit all).
+  if (configError) {
+    console.error("[poll] anticheat_config read failed; using default caps:", configError)
+  }
+
   const hourlyCap = config?.hourly_cap ?? 40
   const dailyCap  = config?.daily_cap  ?? 400
 
-  const { data: dueAccounts } = await supabase
+  const { data: dueAccounts, error: dueError } = await supabase
     .from("lastfm_accounts")
     .select("user_id, lastfm_user, last_uts, consecutive_empty_polls")
     .lte("next_poll_at", new Date().toISOString())
     .order("next_poll_at", { ascending: true })
     .limit(PER_TICK_BUDGET)
 
+  // A failed due-accounts read otherwise iterates over [] and returns "ok" —
+  // a silent no-op tick indistinguishable from "nothing was due".
+  if (dueError) {
+    console.error("[poll] due-accounts read failed; tick is a no-op:", dueError)
+  }
+
   for (const account of dueAccounts ?? []) {
     try {
       await pollUser(supabase, apiKey, account, hourlyCap, dailyCap)
     } catch (err) {
       console.error(`[poll] ${account.lastfm_user} failed:`, err)
+      // On a 429, drop req/s immediately: cool down the rest of this tick.
+      if (err instanceof LastfmBackoffError && err.rateLimited) {
+        console.warn("[poll] rate-limited by Last.fm — cooling down the rest of this tick")
+        break
+      }
     }
   }
 
@@ -66,13 +97,17 @@ async function pollUser(
 ): Promise<void> {
   const { user_id, lastfm_user, last_uts, consecutive_empty_polls } = account
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("timezone, total_points")
+    .select("timezone")
     .eq("id", user_id)
     .single()
 
-  const timezone   = profile?.timezone   ?? "UTC"
+  if (profileError) {
+    console.error(`[poll] ${lastfm_user} profile read failed; using defaults:`, profileError)
+  }
+
+  const timezone   = safeTimezone(profile?.timezone as string | null | undefined)
   const nowSeconds = Math.floor(Date.now() / 1000)
   const fromUts    = last_uts !== null
     ? last_uts - LOOKBACK
@@ -93,7 +128,22 @@ async function pollUser(
     url.searchParams.set("limit",  "200")
     url.searchParams.set("page",   String(page))
 
-    const res = await fetch(url.toString())
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
+
+    // 429/5xx: back this user off (respect Retry-After) and leave last_uts
+    // unchanged so the overlap window re-processes. A generic throw would
+    // leave next_poll_at untouched → aggressive 1-min retry, the opposite of
+    // backoff under pressure.
+    if (res.status === 429 || res.status >= 500) {
+      const retryAfter = parseInt(res.headers.get("retry-after") ?? "", 10)
+      const penalty    = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : ERROR_BACKOFF
+      const nextPollAt = new Date(Date.now() + penalty * 1000).toISOString()
+      await supabase.from("lastfm_accounts").update({ next_poll_at: nextPollAt }).eq("user_id", user_id)
+      throw new LastfmBackoffError(
+        `Last.fm HTTP ${res.status}; backing off ${penalty}s`,
+        res.status === 429,
+      )
+    }
     if (!res.ok) throw new Error(`Last.fm HTTP ${res.status}`)
 
     const { tracks, totalPages } = parseRecentTracks(await res.json())
@@ -133,22 +183,43 @@ async function pollUser(
     image_url:  t.image_url,
   }))
 
-  const { data: insertedRows } = await supabase
+  const { data: insertedRows, error: insertError } = await supabase
     .from("listening_events")
     .upsert(inserts, { ignoreDuplicates: true, onConflict: "user_id,played_at" })
-    .select("id, played_at")
+    .select("id")
 
+  // Throw on insert error so the watermark is not advanced past rows we failed
+  // to persist; the overlap window re-processes them next tick.
+  if (insertError) throw new Error(`insert failed: ${insertError.message}`)
+
+  // actualNewRows = genuinely-new rows this tick — drives the backoff reset
+  // (all-duplicate fetches count as an empty poll).
   const actualNewRows = insertedRows ?? []
 
-  // ── Credit new rows ───────────────────────────────────────────────────────
+  // ── Credit the pending set ──────────────────────────────────────────────
+  //
+  // Credit off credited=false rows, not just the ones inserted this tick: if a
+  // prior tick's atomic write-back rolled back, those rows are still pending
+  // and get retried here — the self-heal that makes crediting durable. Bounded
+  // by the 100-row prune; over-cap rows stay uncredited and are re-evaluated
+  // harmlessly (their hour/day bucket is already full).
+  const { data: pendingRows, error: pendingError } = await supabase
+    .from("listening_events")
+    .select("id, played_at")
+    .eq("user_id", user_id)
+    .eq("credited", false)
 
-  if (actualNewRows.length > 0) {
+  if (pendingError) throw new Error(`pending read failed: ${pendingError.message}`)
+
+  if (pendingRows && pendingRows.length > 0) {
     // Fetch existing credited rows to compute pre-existing hour/day counts.
-    const { data: existingCredited } = await supabase
+    const { data: existingCredited, error: existingError } = await supabase
       .from("listening_events")
       .select("played_at")
       .eq("user_id", user_id)
       .eq("credited", true)
+
+    if (existingError) throw new Error(`credited read failed: ${existingError.message}`)
 
     const existingHourCounts = new Map<string, number>()
     const existingDayCounts  = new Map<string, number>()
@@ -162,7 +233,7 @@ async function pollUser(
     }
 
     const creditResult = credit(
-      actualNewRows,
+      pendingRows,
       existingHourCounts,
       existingDayCounts,
       hourlyCap,
@@ -171,45 +242,16 @@ async function pollUser(
     )
 
     if (creditResult.creditedIds.length > 0) {
-      // Mark credited rows.
-      await supabase
-        .from("listening_events")
-        .update({ credited: true })
-        .in("id", creditResult.creditedIds)
-
-      // Upsert daily_activity (increment existing counts).
-      const affectedDates = creditResult.dayDeltas.map((d) => d.activity_date)
-      const { data: existingActivity } = await supabase
-        .from("daily_activity")
-        .select("activity_date, track_count, points")
-        .eq("user_id", user_id)
-        .in("activity_date", affectedDates)
-
-      const activityMap = new Map(
-        (existingActivity ?? []).map((a) => [a.activity_date, a]),
-      )
-
-      const activityUpserts = creditResult.dayDeltas.map((d) => {
-        const existing = activityMap.get(d.activity_date)
-        return {
-          user_id,
-          activity_date: d.activity_date,
-          track_count:   (existing?.track_count ?? 0) + d.track_count,
-          points:        (existing?.points       ?? 0) + d.points,
-        }
+      // Atomic write-back: flag credited rows + increment daily_activity +
+      // total_points in a single transaction. Throw on error so nothing
+      // partially commits and the watermark stays put for a clean retry.
+      const { error: creditError } = await supabase.rpc("apply_credits", {
+        p_user_id:      user_id,
+        p_credited_ids: creditResult.creditedIds,
+        p_day_deltas:   creditResult.dayDeltas,
+        p_total_delta:  creditResult.totalCredited,
       })
-
-      await supabase
-        .from("daily_activity")
-        .upsert(activityUpserts, { onConflict: "user_id,activity_date" })
-
-      // Increment total_points.
-      await supabase
-        .from("profiles")
-        .update({
-          total_points: (profile?.total_points ?? 0) + creditResult.totalCredited,
-        })
-        .eq("id", user_id)
+      if (creditError) throw new Error(`apply_credits failed: ${creditError.message}`)
     }
   }
 

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { z } from "zod"
 import { computeStreaks } from "@/lib/streaks"
 import { todayInTimezone } from "@/lib/user-time"
+import { throwOnDbError, PGRST_NO_ROW } from "@/lib/supabase/errors"
 import { subDays } from "date-fns"
 import type { StreakStats, HeatmapDay } from "@/app/(app)/home/actions"
 
@@ -17,25 +18,35 @@ export async function fetchPublicProfile(username: string) {
   // `using(true)`), so any column listed is world-readable. List safe columns
   // explicitly.
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("id, username, avatar_url, total_points, timezone, created_at")
     .ilike("username", username)
     .single()
+  // Distinguish "no such user" (no row → null → caller 404s) from a real DB
+  // error (throw → root error boundary). A blip must not 404 a live profile.
+  if (error) {
+    if (error.code === PGRST_NO_ROW) return null
+    throw new Error(error.message)
+  }
   return data
 }
 
 export async function fetchPublicStreakStats(userId: string): Promise<StreakStats> {
   // Anon/cookie client — daily_activity and profiles are public-read via RLS.
   const supabase = await createClient()
-  const [{ data: activity }, { data: profile }] = await Promise.all([
-    supabase
-      .from("daily_activity")
-      .select("activity_date")
-      .eq("user_id", userId)
-      .gte("track_count", 1),
-    supabase.from("profiles").select("timezone, created_at").eq("id", userId).single(),
-  ])
+  const [{ data: activity, error: activityError }, { data: profile, error: profileError }] =
+    await Promise.all([
+      supabase
+        .from("daily_activity")
+        .select("activity_date")
+        .eq("user_id", userId)
+        .gte("track_count", 1),
+      supabase.from("profiles").select("timezone, created_at").eq("id", userId).single(),
+    ])
+
+  throwOnDbError(activityError)
+  throwOnDbError(profileError, { allowNoRow: true })
 
   const timezone   = profile?.timezone ?? "UTC"
   const today      = todayInTimezone(timezone)
@@ -54,11 +65,13 @@ export async function fetchPublicHeatmapData(userId: string): Promise<HeatmapDay
   const supabase   = await createClient()
   const oneYearAgo = subDays(new Date(), 371).toISOString().slice(0, 10)
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("daily_activity")
     .select("activity_date, track_count")
     .eq("user_id", userId)
     .gte("activity_date", oneYearAgo)
+
+  throwOnDbError(error)
 
   return (data ?? []).map((r) => ({
     date:  r.activity_date as string,

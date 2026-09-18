@@ -13,6 +13,8 @@ import { TimezoneSync } from "@/app/(app)/home/_components/timezone-sync"
 import { NowPlaying } from "@/app/(app)/home/_components/now-playing"
 import { StatCard } from "@/components/ui/stat-card"
 import { SkeletonHeatmap, SkeletonRow } from "@/components/ui/skeleton"
+import { SectionErrorBoundary } from "@/components/section-error-boundary"
+import { throwOnDbError } from "@/lib/supabase/errors"
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -22,7 +24,7 @@ export default async function HomePage() {
 
   if (!user) redirect("/login")
 
-  const [{ data: profile }, streaks] = await Promise.all([
+  const [{ data: profile, error: profileError }, streaks] = await Promise.all([
     supabase
       .from("profiles")
       .select("username, avatar_url, total_points, timezone")
@@ -30,6 +32,10 @@ export default async function HomePage() {
       .single(),
     getStreakStats(user.id),
   ])
+
+  // A real DB error must surface (root boundary), not silently render a blank
+  // "Listener" home. A missing profile row still falls back below.
+  throwOnDbError(profileError, { allowNoRow: true })
 
   const displayName = profile?.username ?? "Listener"
   const timezone    = profile?.timezone ?? "UTC"
@@ -126,9 +132,11 @@ export default async function HomePage() {
           </div>
           <h2 className="font-heading font-bold text-xl">Activity</h2>
         </div>
-        <Suspense fallback={<SkeletonHeatmap />}>
-          <HeatmapSection userId={user.id} today={today} />
-        </Suspense>
+        <SectionErrorBoundary label="activity heatmap">
+          <Suspense fallback={<SkeletonHeatmap />}>
+            <HeatmapSection userId={user.id} today={today} />
+          </Suspense>
+        </SectionErrorBoundary>
       </div>
 
       {/* Leaderboard — granular Suspense */}
@@ -139,17 +147,19 @@ export default async function HomePage() {
           </div>
           <h2 className="font-heading font-bold text-xl">Leaderboard</h2>
         </div>
-        <Suspense
-          fallback={
-            <div className="bg-white border-2 border-foreground/10 rounded-2xl overflow-hidden">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <SkeletonRow key={i} className="border-b border-foreground/5 last:border-0 px-6" />
-              ))}
-            </div>
-          }
-        >
-          <LeaderboardSection currentUserId={user.id} />
-        </Suspense>
+        <SectionErrorBoundary label="leaderboard">
+          <Suspense
+            fallback={
+              <div className="bg-white border-2 border-foreground/10 rounded-2xl overflow-hidden">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <SkeletonRow key={i} className="border-b border-foreground/5 last:border-0 px-6" />
+                ))}
+              </div>
+            }
+          >
+            <LeaderboardSection currentUserId={user.id} />
+          </Suspense>
+        </SectionErrorBoundary>
       </div>
     </div>
   )

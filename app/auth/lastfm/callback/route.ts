@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
   let name: string
   let key: string
   try {
-    const res = await fetch(sessionUrl.toString())
+    const res = await fetch(sessionUrl.toString(), { signal: AbortSignal.timeout(8000) })
     const body: unknown = await res.json()
 
     // Last.fm errors return { error, message } at HTTP 200

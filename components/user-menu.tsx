@@ -6,13 +6,13 @@ import { ChevronDown, LogOut, Trash2, User, Users } from "lucide-react"
 import { signOut, deleteAccount } from "@/app/auth/actions"
 
 interface Props {
-  userId: string
+  username: string | null
   displayName: string
   avatarUrl: string | null
   pendingCount: number
 }
 
-export function UserMenu({ userId, displayName, avatarUrl, pendingCount }: Props) {
+export function UserMenu({ username, displayName, avatarUrl, pendingCount }: Props) {
   return (
     <Menu.Root>
       <Menu.Trigger className="flex items-center gap-2 rounded-full pl-1 pr-2.5 py-1 hover:bg-[#FBBF24] transition-colors duration-200 outline-none focus-visible:ring-3 focus-visible:ring-ring/30">
@@ -50,14 +50,16 @@ export function UserMenu({ userId, displayName, avatarUrl, pendingCount }: Props
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="end" sideOffset={10} className="z-50">
           <Menu.Popup className="min-w-52 bg-white border-2 border-foreground rounded-xl shadow-hard p-1.5 outline-none">
-            <Menu.LinkItem
-              render={<Link href={`/u/${userId}`} />}
-              closeOnClick
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-foreground cursor-pointer select-none data-[highlighted]:bg-[#FBBF24] outline-none"
-            >
-              <User className="w-4 h-4" aria-hidden />
-              Profile
-            </Menu.LinkItem>
+            {username && (
+              <Menu.LinkItem
+                render={<Link href={`/u/${username}`} />}
+                closeOnClick
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-foreground cursor-pointer select-none data-[highlighted]:bg-[#FBBF24] outline-none"
+              >
+                <User className="w-4 h-4" aria-hidden />
+                Profile
+              </Menu.LinkItem>
+            )}
 
             <Menu.LinkItem
               render={<Link href="/friends" />}

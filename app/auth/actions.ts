@@ -43,6 +43,9 @@ export async function deleteAccount() {
   if (!user) redirect("/")
 
   const service = createServiceClient()
-  await service.auth.admin.deleteUser(user.id)
+  const { error } = await service.auth.admin.deleteUser(user.id)
+  // Never signal success (redirect home) on an unverified destructive op — for
+  // a "delete my data" flow a silently-failed delete is a consent/GDPR problem.
+  if (error) throw new Error(`Account deletion failed: ${error.message}`)
   redirect("/")
 }

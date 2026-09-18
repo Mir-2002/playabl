@@ -31,7 +31,7 @@ export function FriendsClient({ viewerId, initialData }: Props) {
   const queryClient = useQueryClient()
   const queryKey = ["friends", viewerId]
 
-  const { data = initialData } = useQuery({
+  const { data = initialData, isError } = useQuery({
     queryKey,
     queryFn: () => getFriendsData(viewerId),
     refetchInterval: 30_000,
@@ -111,6 +111,17 @@ export function FriendsClient({ viewerId, initialData }: Props) {
 
   return (
     <div className="space-y-8">
+      {/* Refetch failed — flag that the list may be stale rather than showing
+          it as silently live. */}
+      {isError && (
+        <div className="flex items-center gap-2 rounded-xl border-2 border-foreground/10 bg-muted px-4 py-2.5">
+          <span className="w-2 h-2 rounded-full flex-shrink-0 bg-muted-foreground/40" aria-hidden />
+          <p className="text-xs text-muted-foreground">
+            Couldn&apos;t refresh — showing last known data.
+          </p>
+        </div>
+      )}
+
       {/* Pending inbox */}
       <section>
         <div className="flex items-center gap-3 mb-4">

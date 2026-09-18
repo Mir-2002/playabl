@@ -150,7 +150,7 @@ describe("parseRecentTracks", () => {
     ).toThrow("Last.fm error 6: User not found")
   })
 
-  it("throws on invalid (non-numeric) uts", () => {
+  it("skips a row with an invalid (non-numeric) uts instead of throwing", () => {
     const badUts = {
       ...validResponse,
       recenttracks: {
@@ -158,11 +158,31 @@ describe("parseRecentTracks", () => {
         track: [{ ...validTrack, date: { uts: "not-a-number" } }],
       },
     }
-    expect(() => parseRecentTracks(badUts)).toThrow()
+    const { tracks } = parseRecentTracks(badUts)
+    expect(tracks).toHaveLength(0)
   })
 
-  it("throws when recenttracks is missing (schema error)", () => {
-    expect(() => parseRecentTracks({ items: [] })).toThrow()
+  it("keeps good rows when one row has an invalid uts (no page poisoning)", () => {
+    const mixed = {
+      recenttracks: {
+        track: [{ ...validTrack, date: { uts: "not-a-number" } }, validTrack],
+        "@attr": {
+          user: "testuser",
+          totalPages: "1",
+          page: "1",
+          perPage: "200",
+          total: "2",
+        },
+      },
+    }
+    const { tracks } = parseRecentTracks(mixed)
+    expect(tracks).toHaveLength(1)
+    expect(tracks[0].track_name).toBe("Blinding Lights")
+  })
+
+  it("returns an empty result for an unrecognised shape (treated as empty poll)", () => {
+    expect(parseRecentTracks({ items: [] })).toEqual({ tracks: [], totalPages: 1 })
+    expect(parseRecentTracks({})).toEqual({ tracks: [], totalPages: 1 })
   })
 
   it("handles multi-page response (totalPages > 1)", () => {

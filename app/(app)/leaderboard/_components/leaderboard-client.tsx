@@ -21,7 +21,7 @@ export function LeaderboardClient({ initialData, currentUserId }: Props) {
   const prevOrderRef = useRef<string[]>(initialData.map((e) => e.id))
   const [rankChanged, setRankChanged] = useState<Set<string>>(new Set())
 
-  const { data: entries = [], dataUpdatedAt, isFetching } = useQuery({
+  const { data: entries = [], dataUpdatedAt, isFetching, isError } = useQuery({
     queryKey: ["leaderboard"],
     queryFn: getLeaderboard,
     refetchInterval: 30_000,
@@ -46,7 +46,7 @@ export function LeaderboardClient({ initialData, currentUserId }: Props) {
 
   return (
     <div className="bg-white border-2 border-foreground rounded-2xl overflow-hidden shadow-hard">
-      <LiveBar dataUpdatedAt={dataUpdatedAt} isFetching={isFetching} />
+      <LiveBar dataUpdatedAt={dataUpdatedAt} isFetching={isFetching} isError={isError} />
 
       {entries.length === 0 ? (
         <div className="p-8">
@@ -68,20 +68,38 @@ export function LeaderboardClient({ initialData, currentUserId }: Props) {
   )
 }
 
-function LiveBar({ dataUpdatedAt, isFetching }: { dataUpdatedAt: number; isFetching: boolean }) {
+function LiveBar({
+  dataUpdatedAt,
+  isFetching,
+  isError,
+}: {
+  dataUpdatedAt: number
+  isFetching: boolean
+  isError: boolean
+}) {
   return (
     <div className="flex items-center justify-end gap-2 px-6 py-2.5 bg-muted border-b-2 border-foreground/10">
+      {/* On a refetch failure, drop the pulsing green "live" dot so stale data
+          isn't presented as live. */}
       <span
-        className={`w-2 h-2 rounded-full bg-[#34D399] flex-shrink-0 ${isFetching ? "animate-pulse" : ""}`}
+        className={`w-2 h-2 rounded-full flex-shrink-0 ${
+          isError ? "bg-muted-foreground/40" : `bg-[#34D399] ${isFetching ? "animate-pulse" : ""}`
+        }`}
         aria-hidden
         suppressHydrationWarning
       />
       <p className="text-xs text-muted-foreground">
-        Last updated{" "}
-        {new Date(dataUpdatedAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
+        {isError ? (
+          "Reconnecting…"
+        ) : (
+          <>
+            Last updated{" "}
+            {new Date(dataUpdatedAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </>
+        )}
       </p>
     </div>
   )

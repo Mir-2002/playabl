@@ -7,13 +7,26 @@ import { Music } from "lucide-react"
 import { getNowPlaying } from "../actions"
 
 export function NowPlaying() {
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ["now-playing"],
     queryFn: getNowPlaying,
     refetchInterval: 30_000,
   })
 
-  if (!data) return null
+  // On a persistent fetch failure, show a quiet "can't reach" affordance
+  // instead of silently vanishing. Idle / no-data (user has no scrobbles)
+  // still renders nothing.
+  if (!data) {
+    if (!isError) return null
+    return (
+      <div className="ml-auto hidden sm:flex items-center gap-1.5 flex-shrink-0">
+        <span className="w-2 h-2 rounded-full flex-shrink-0 bg-muted-foreground/40" aria-hidden />
+        <span className="text-xs font-medium text-muted-foreground">
+          Can&apos;t reach Last.fm
+        </span>
+      </div>
+    )
+  }
 
   const { isPlaying, track_name, artist, image_url, played_at } = data
 

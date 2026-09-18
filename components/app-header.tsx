@@ -38,7 +38,7 @@ export async function AppHeader() {
 
         {user && (
           <UserMenu
-            userId={user.id}
+            username={profile?.username ?? null}
             displayName={displayName}
             avatarUrl={profile?.avatar_url ?? null}
             pendingCount={pendingCount}

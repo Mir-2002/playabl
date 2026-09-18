@@ -127,7 +127,12 @@ export type NowPlaying = {
  * - Coerces date.uts (unix-second string) → played_at (ISO 8601 UTC).
  * - Normalises mbid="" → track_id=null.
  * - Captures album name and largest non-placeholder art URL.
- * - Throws on a Last.fm error envelope or invalid uts.
+ * - Throws ONLY on the explicit Last.fm error envelope ({ error: n }).
+ * - A single row with an invalid uts is skipped (not thrown), so one corrupt
+ *   record can't poison an otherwise-healthy page of scrobbles.
+ * - An unrecognised shape (HTML error page behind a 200, maintenance JSON, {})
+ *   yields an empty result so the caller treats it as an empty poll (backs off)
+ *   rather than a hard throw that would stall the user.
  */
 export function parseRecentTracks(raw: unknown): ParseResult {
   const maybeError = ErrorSchema.safeParse(raw)
@@ -136,19 +141,25 @@ export function parseRecentTracks(raw: unknown): ParseResult {
     throw new Error(`Last.fm error ${maybeError.data.error}: ${msg}`)
   }
 
-  const parsed = ResponseSchema.parse(raw)
-  const trackArr = Array.isArray(parsed.recenttracks.track)
-    ? parsed.recenttracks.track
-    : [parsed.recenttracks.track]
+  const parsed = ResponseSchema.safeParse(raw)
+  if (!parsed.success) {
+    console.warn("[lastfm] unrecognised getRecentTracks shape; treating as empty poll")
+    return { tracks: [], totalPages: 1 }
+  }
+
+  const trackArr = Array.isArray(parsed.data.recenttracks.track)
+    ? parsed.data.recenttracks.track
+    : [parsed.data.recenttracks.track]
 
   const tracks: LastfmTrack[] = trackArr
     .filter((t) => !t["@attr"]?.nowplaying && t.date !== undefined)
-    .map((t) => {
+    .flatMap((t) => {
       const uts = parseInt(t.date!.uts, 10)
       if (!Number.isFinite(uts) || uts <= 0) {
-        throw new Error(`Invalid uts value: ${t.date!.uts}`)
+        console.warn(`[lastfm] skipping track with invalid uts: ${t.date!.uts}`)
+        return []
       }
-      return {
+      return [{
         track_id:   t.mbid && t.mbid !== "" ? t.mbid : null,
         track_name: t.name,
         artist:     t.artist["#text"],
@@ -156,12 +167,12 @@ export function parseRecentTracks(raw: unknown): ParseResult {
         uts,
         album:      pickAlbum(t.album),
         image_url:  pickImage(t.image),
-      }
+      }]
     })
 
   return {
     tracks,
-    totalPages: parseInt(parsed.recenttracks["@attr"].totalPages, 10),
+    totalPages: parseInt(parsed.data.recenttracks["@attr"].totalPages, 10),
   }
 }
 

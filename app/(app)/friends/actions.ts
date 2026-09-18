@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { throwOnDbError } from "@/lib/supabase/errors"
 
 export type ProfileSummary = {
   id: string
@@ -39,6 +40,10 @@ export async function getFriendsData(viewerId: string): Promise<FriendsData> {
       .order("created_at", { ascending: false }),
   ])
 
+  // A failed read must surface, not render as an empty friends list.
+  throwOnDbError(pendingResult.error)
+  throwOnDbError(friendsResult.error)
+
   // Collect all profile IDs we need to fetch
   const pendingRows = pendingResult.data ?? []
   const friendRows = friendsResult.data ?? []
@@ -50,12 +55,13 @@ export async function getFriendsData(viewerId: string): Promise<FriendsData> {
     allIds.add(r.receiver_id)
   }
 
-  let profileMap = new Map<string, ProfileSummary>()
+  const profileMap = new Map<string, ProfileSummary>()
   if (allIds.size > 0) {
-    const { data: profiles } = await supabase
+    const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("id, username, avatar_url")
       .in("id", Array.from(allIds))
+    throwOnDbError(profilesError)
     for (const p of profiles ?? []) {
       profileMap.set(p.id, p)
     }

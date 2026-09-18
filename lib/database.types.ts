@@ -213,7 +213,15 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      apply_credits: {
+        Args: {
+          p_credited_ids: string[]
+          p_day_deltas: Json
+          p_total_delta: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
