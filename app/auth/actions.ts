@@ -35,6 +35,30 @@ export async function signOut() {
   redirect("/")
 }
 
+export async function disconnectLastfm() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect("/")
+
+  // lastfm_accounts is service-role-only (RLS), so null the session key with the
+  // service client. This is the spec's definition of "disconnect"; the poll
+  // engine also skips accounts whose lastfm_sk is null, so tracking stops until
+  // the user logs back in (which restores the key).
+  const service = createServiceClient()
+  const { error } = await service
+    .from("lastfm_accounts")
+    .update({ lastfm_sk: null, updated_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+  // Don't signal success on an unverified state change — a silently-failed
+  // disconnect would leave the account still connected and still tracked.
+  if (error) throw new Error(`Disconnect failed: ${error.message}`)
+
+  await supabase.auth.signOut()
+  redirect("/")
+}
+
 export async function deleteAccount() {
   const supabase = await createClient()
   const {

@@ -2,8 +2,8 @@
 
 import { Menu } from "@base-ui/react/menu"
 import Link from "next/link"
-import { ChevronDown, LogOut, Trash2, User, Users } from "lucide-react"
-import { signOut, deleteAccount } from "@/app/auth/actions"
+import { ChevronDown, LogOut, Trash2, Unplug, User, Users } from "lucide-react"
+import { signOut, deleteAccount, disconnectLastfm } from "@/app/auth/actions"
 
 interface Props {
   username: string | null
@@ -85,6 +85,28 @@ export function UserMenu({ username, displayName, avatarUrl, pendingCount }: Pro
               >
                 <LogOut className="w-4 h-4" aria-hidden />
                 Sign out
+              </Menu.Item>
+            </form>
+
+            <form
+              action={disconnectLastfm}
+              onSubmit={(e) => {
+                if (
+                  !confirm(
+                    "Disconnect Last.fm? This stops tracking your scrobbles and signs you out. Your profile and history are kept.",
+                  )
+                ) {
+                  e.preventDefault()
+                }
+              }}
+            >
+              <Menu.Item
+                nativeButton
+                render={<button type="submit" />}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-foreground cursor-pointer select-none data-[highlighted]:bg-[#FBBF24] outline-none"
+              >
+                <Unplug className="w-4 h-4" aria-hidden />
+                Disconnect Last.fm
               </Menu.Item>
             </form>
 

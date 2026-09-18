@@ -1,10 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2"
 import { parseRecentTracks } from "../_shared/lastfm.ts"
-import { credit } from "../_shared/credit.ts"
+import { buildDayCounts, buildHourCounts, credit, localDayKey } from "../_shared/credit.ts"
 import { computeNextInterval } from "../_shared/backoff.ts"
 import { safeTimezone } from "../_shared/timezone.ts"
-import { format } from "date-fns"
-import { TZDate } from "@date-fns/tz"
 
 const LOOKBACK         = 600   // seconds — overlap window on existing watermark
 const INITIAL_LOOKBACK = 86400 // 24 h on first poll (last_uts is null)
@@ -55,6 +53,10 @@ Deno.serve(async () => {
   const { data: dueAccounts, error: dueError } = await supabase
     .from("lastfm_accounts")
     .select("user_id, lastfm_user, last_uts, consecutive_empty_polls")
+    // Skip disconnected accounts (lastfm_sk nulled by the disconnect action).
+    // sk is only ever null after an explicit disconnect — creation and re-login
+    // always set it — so this self-heals: logging back in resumes polling.
+    .not("lastfm_sk", "is", null)
     .lte("next_poll_at", new Date().toISOString())
     .order("next_poll_at", { ascending: true })
     .limit(PER_TICK_BUDGET)
@@ -212,7 +214,9 @@ async function pollUser(
   if (pendingError) throw new Error(`pending read failed: ${pendingError.message}`)
 
   if (pendingRows && pendingRows.length > 0) {
-    // Fetch existing credited rows to compute pre-existing hour/day counts.
+    // Hour counts come from listening_events (credited=true): the hourly cap is
+    // always < the 100-row retention window, so a recent hour's credited rows
+    // are guaranteed present and the count is accurate.
     const { data: existingCredited, error: existingError } = await supabase
       .from("listening_events")
       .select("played_at")
@@ -221,16 +225,25 @@ async function pollUser(
 
     if (existingError) throw new Error(`credited read failed: ${existingError.message}`)
 
-    const existingHourCounts = new Map<string, number>()
-    const existingDayCounts  = new Map<string, number>()
+    const existingHourCounts = buildHourCounts(existingCredited ?? [], timezone)
 
-    for (const row of existingCredited ?? []) {
-      const tzDate  = new TZDate(new Date(row.played_at), timezone)
-      const dayKey  = format(tzDate, "yyyy-MM-dd")
-      const hourKey = format(tzDate, "yyyy-MM-dd'T'HH")
-      existingHourCounts.set(hourKey, (existingHourCounts.get(hourKey) ?? 0) + 1)
-      existingDayCounts.set(dayKey,   (existingDayCounts.get(dayKey)   ?? 0) + 1)
-    }
+    // Day counts come from daily_activity, NOT listening_events: track_count is
+    // the durable, never-pruned per-local-day credited count, so the daily cap
+    // survives the 100-row prune (audit F3 — the daily-cap bypass fix). Scope to
+    // the local days the pending rows fall in.
+    const pendingDayKeys = [...new Set(pendingRows.map((r) => localDayKey(r.played_at, timezone)))]
+
+    const { data: dayActivity, error: dayActivityError } = await supabase
+      .from("daily_activity")
+      .select("activity_date, track_count")
+      .eq("user_id", user_id)
+      .in("activity_date", pendingDayKeys)
+
+    if (dayActivityError) throw new Error(`daily_activity read failed: ${dayActivityError.message}`)
+
+    const existingDayCounts = buildDayCounts(
+      (dayActivity ?? []) as { activity_date: string; track_count: number }[],
+    )
 
     const creditResult = credit(
       pendingRows,
