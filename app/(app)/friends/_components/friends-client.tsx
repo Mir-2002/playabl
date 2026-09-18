@@ -198,7 +198,7 @@ export function FriendsClient({ viewerId, initialData }: Props) {
                   <li key={req.id} className="border-b-2 border-foreground/10 last:border-0">
                     <ListRow
                       index={i}
-                      href={`/u/${friend.username ?? friend.id}`}
+                      href={`/u/${friend.username}`}
                       leading={<ProfileAvatar profile={friend} />}
                       title={friend.username ?? "Listener"}
                       trailing={

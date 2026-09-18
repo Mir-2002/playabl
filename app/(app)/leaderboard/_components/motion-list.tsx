@@ -43,7 +43,7 @@ export function MotionList({ entries, currentUserId, rankChanged }: Props) {
               style={{ "--i": index } as React.CSSProperties}
             >
             <Link
-              href={entry.username ? `/u/${entry.username}` : "#"}
+              href={`/u/${entry.username}`}
               className="flex items-center gap-4 px-6 py-4 w-full hover:bg-muted/40 transition-colors"
             >
               {/* Rank badge */}
