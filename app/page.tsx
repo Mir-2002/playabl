@@ -104,22 +104,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Marquee */}
-      <div className="border-y-2 border-foreground bg-[#FBBF24] py-3 overflow-hidden">
-        <div className="animate-marquee flex whitespace-nowrap">
-          {Array.from({ length: 2 }).map((_, pass) => (
-            <span key={pass} className="flex items-center gap-8 pr-8">
-              {["1 scrobble = 1 point", "Global leaderboard", "Daily streaks", "Activity heatmap", "Connect Last.fm", "Invite your friends", "Earn your rank", "No tricks"].map((kw) => (
-                <span key={kw} className="text-sm font-bold uppercase tracking-widest flex items-center gap-3">
-                  {kw}
-                  <span className="text-foreground/40">✦</span>
-                </span>
-              ))}
-            </span>
-          ))}
-        </div>
-      </div>
-
       {/* Features */}
       <section className="max-w-6xl mx-auto px-6 py-16">
         <InViewSection>
@@ -127,7 +111,7 @@ export default function LandingPage() {
             How Playabl works
           </h2>
         </InViewSection>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-6 items-stretch">
           {[
             {
               icon: <Music className="w-5 h-5 text-white" />,
@@ -154,7 +138,7 @@ export default function LandingPage() {
               index: 2,
             },
           ].map((card) => (
-            <InViewSection key={card.title}>
+            <InViewSection key={card.title} className="h-full">
               <FeatureCard {...card} />
             </InViewSection>
           ))}
@@ -210,7 +194,7 @@ function FeatureCard({
 }) {
   return (
     <div
-      className="bg-white border-2 border-foreground rounded-2xl p-6 shadow-hard animate-pop-in transition-all duration-[--dur-base] ease-[--ease-pop] hover:-translate-y-1 hover:rotate-[-1deg]"
+      className="h-full bg-white border-2 border-foreground rounded-2xl p-6 shadow-hard animate-pop-in transition-all duration-[--dur-base] ease-[--ease-pop] hover:-translate-y-1 hover:rotate-[-1deg]"
       style={{ "--i": index } as React.CSSProperties}
     >
       <div

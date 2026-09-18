@@ -74,6 +74,7 @@ function LiveBar({ dataUpdatedAt, isFetching }: { dataUpdatedAt: number; isFetch
       <span
         className={`w-2 h-2 rounded-full bg-[#34D399] flex-shrink-0 ${isFetching ? "animate-pulse" : ""}`}
         aria-hidden
+        suppressHydrationWarning
       />
       <p className="text-xs text-muted-foreground">
         Last updated{" "}
