@@ -1,7 +1,6 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
-import { createServiceClient } from "@/lib/supabase/service"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
@@ -13,8 +12,12 @@ import type { StreakStats, HeatmapDay } from "@/app/(app)/home/actions"
 // ─── Public profile data (service client, runs server-side only) ──────────────
 
 export async function fetchPublicProfile(username: string) {
-  const service = createServiceClient()
-  const { data } = await service
+  // Anon/cookie client so RLS is the enforcing layer, not a bypassed service
+  // role. NEVER use select("*") here — `profiles` is public-read (RLS
+  // `using(true)`), so any column listed is world-readable. List safe columns
+  // explicitly.
+  const supabase = await createClient()
+  const { data } = await supabase
     .from("profiles")
     .select("id, username, avatar_url, total_points, timezone, created_at")
     .ilike("username", username)
@@ -23,14 +26,15 @@ export async function fetchPublicProfile(username: string) {
 }
 
 export async function fetchPublicStreakStats(userId: string): Promise<StreakStats> {
-  const service = createServiceClient()
+  // Anon/cookie client — daily_activity and profiles are public-read via RLS.
+  const supabase = await createClient()
   const [{ data: activity }, { data: profile }] = await Promise.all([
-    service
+    supabase
       .from("daily_activity")
       .select("activity_date")
       .eq("user_id", userId)
       .gte("track_count", 1),
-    service.from("profiles").select("timezone, created_at").eq("id", userId).single(),
+    supabase.from("profiles").select("timezone, created_at").eq("id", userId).single(),
   ])
 
   const timezone   = profile?.timezone ?? "UTC"
@@ -46,10 +50,11 @@ export async function fetchPublicStreakStats(userId: string): Promise<StreakStat
 }
 
 export async function fetchPublicHeatmapData(userId: string): Promise<HeatmapDay[]> {
-  const service    = createServiceClient()
+  // Anon/cookie client — daily_activity is public-read via RLS.
+  const supabase   = await createClient()
   const oneYearAgo = subDays(new Date(), 371).toISOString().slice(0, 10)
 
-  const { data } = await service
+  const { data } = await supabase
     .from("daily_activity")
     .select("activity_date, track_count")
     .eq("user_id", userId)
@@ -210,10 +215,13 @@ export async function removeFriend(
   if (!parsed.success) return { error: "Invalid request." }
   const { requestId, otherUserId } = parsed.data
 
+  // Scope the delete to the caller (defense-in-depth alongside the RLS DELETE
+  // policy), matching the accept/decline actions. user.id is server-derived.
   const { error } = await supabase
     .from("friend_requests")
     .delete()
     .eq("id", requestId)
+    .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
 
   if (error) return { error: "Could not remove friend." }
 

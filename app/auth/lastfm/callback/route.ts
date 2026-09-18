@@ -5,6 +5,14 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { env } from "@/lib/env"
 import { parseUserInfo } from "@/supabase/functions/_shared/lastfm"
+import { LASTFM_STATE_COOKIE } from "@/lib/security/lastfm-state"
+
+// Redirect helper that always clears the one-time CSRF state cookie.
+function redirectAndClearState(url: string): NextResponse {
+  const response = NextResponse.redirect(url)
+  response.cookies.set(LASTFM_STATE_COOKIE, "", { path: "/", maxAge: 0 })
+  return response
+}
 
 const LastfmSessionSchema = z.object({
   session: z.object({
@@ -38,8 +46,16 @@ export async function GET(request: NextRequest) {
   const { origin } = request.nextUrl
   const token = request.nextUrl.searchParams.get("token")
 
+  // CSRF check: the returned `state` must match the cookie planted before the
+  // redirect. This blocks login-CSRF (an attacker replaying their own token).
+  const state = request.nextUrl.searchParams.get("state")
+  const expectedState = request.cookies.get(LASTFM_STATE_COOKIE)?.value
+  if (!state || !expectedState || state !== expectedState) {
+    return redirectAndClearState(`${origin}/login?error=denied`)
+  }
+
   if (!token) {
-    return NextResponse.redirect(`${origin}/login?error=denied`)
+    return redirectAndClearState(`${origin}/login?error=denied`)
   }
 
   // Compute api_sig and call auth.getSession
@@ -65,18 +81,18 @@ export async function GET(request: NextRequest) {
 
     // Last.fm errors return { error, message } at HTTP 200
     if (LastfmErrorSchema.safeParse(body).success) {
-      return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+      return redirectAndClearState(`${origin}/login?error=auth_failed`)
     }
 
     const parsed = LastfmSessionSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+      return redirectAndClearState(`${origin}/login?error=auth_failed`)
     }
 
     name = parsed.data.session.name
     key = parsed.data.session.key
   } catch {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+    return redirectAndClearState(`${origin}/login?error=auth_failed`)
   }
 
   // user.getInfo is a public read — no api_sig required.
@@ -98,10 +114,13 @@ export async function GET(request: NextRequest) {
 
   // Resolve the Supabase user: existing → reuse, new → create
   let userId: string
+  // Case-insensitive match: Last.fm usernames are case-insensitive and the
+  // derived email is lowercased, so a differently-cased `name` must still map
+  // to the existing account (otherwise createUser would collide on the email).
   const { data: existing } = await service
     .from("lastfm_accounts")
     .select("user_id")
-    .eq("lastfm_user", name)
+    .ilike("lastfm_user", name)
     .single()
 
   if (existing) {
@@ -126,7 +145,7 @@ export async function GET(request: NextRequest) {
         user_metadata: { lastfm_user: name, display_name: name, avatar_url: avatarUrl },
       })
     if (createErr || !created.user) {
-      return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+      return redirectAndClearState(`${origin}/login?error=auth_failed`)
     }
     userId = created.user.id
 
@@ -152,7 +171,7 @@ export async function GET(request: NextRequest) {
       email,
     })
   if (linkErr || !linkData?.properties?.hashed_token) {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+    return redirectAndClearState(`${origin}/login?error=auth_failed`)
   }
 
   const supabase = await createClient()
@@ -161,8 +180,8 @@ export async function GET(request: NextRequest) {
     token_hash: linkData.properties.hashed_token,
   })
   if (verifyErr) {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+    return redirectAndClearState(`${origin}/login?error=auth_failed`)
   }
 
-  return NextResponse.redirect(`${origin}/home`)
+  return redirectAndClearState(`${origin}/home`)
 }
