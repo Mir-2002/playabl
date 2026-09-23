@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic"
 import { useQuery } from "@tanstack/react-query"
-import { getLeaderboard } from "@/app/(app)/leaderboard/actions"
 import type { LeaderboardEntry } from "@/app/(app)/leaderboard/actions"
 
 const AnimatedNumber = dynamic(
@@ -21,7 +20,8 @@ export function PointsDisplay({
 }) {
   const { data = initialData ?? [] } = useQuery({
     queryKey: ["leaderboard"],
-    queryFn: getLeaderboard,
+    queryFn: (): Promise<LeaderboardEntry[]> =>
+      fetch("/api/leaderboard").then((r) => r.json()),
     initialData,
     refetchInterval: 30_000,
   })

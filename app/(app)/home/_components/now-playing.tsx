@@ -5,13 +5,17 @@ import { formatDistanceToNow } from "date-fns"
 import Image from "next/image"
 import { Music } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getNowPlaying } from "../actions"
+import type { NowPlaying as NowPlayingData } from "@/supabase/functions/_shared/lastfm"
 
-export function NowPlaying() {
+export function NowPlaying({ username }: { username: string | null }) {
   const { data, isError, isLoading } = useQuery({
-    queryKey: ["now-playing"],
-    queryFn: getNowPlaying,
+    queryKey: ["now-playing", username],
+    queryFn: (): Promise<NowPlayingData | null> =>
+      fetch(`/api/now-playing?username=${encodeURIComponent(username ?? "")}`).then((r) =>
+        r.json()
+      ),
     refetchInterval: 30_000,
+    enabled: Boolean(username),
   })
 
   if (isLoading) {

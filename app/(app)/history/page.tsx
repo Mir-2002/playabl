@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getUser } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Music } from "lucide-react"
 import { getHistoryPage } from "@/app/(app)/history/actions"
@@ -8,13 +8,13 @@ import { PageHeader } from "@/components/ui/page-header"
 import { EmptyState } from "@/components/ui/empty-state"
 
 export default async function HistoryPage() {
-  const supabase = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await getUser()
 
   if (!user) redirect("/login")
 
+  const supabase = await createClient()
   const [rows, { data: profile }] = await Promise.all([
     getHistoryPage(user.id),
     supabase.from("profiles").select("timezone").eq("id", user.id).single(),

@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { createClient } from "@/lib/supabase/server"
+import { getUser } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Flame } from "lucide-react"
 import { getStreakCalendarData } from "./actions"
@@ -9,10 +9,9 @@ import { PageHeader } from "@/components/ui/page-header"
 export const metadata: Metadata = { title: "Streak — Playabl" }
 
 export default async function StreakPage() {
-  const supabase = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await getUser()
 
   if (!user) redirect("/login")
 

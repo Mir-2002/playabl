@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { unstable_cache } from "next/cache"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
@@ -10,9 +11,14 @@ import { throwOnDbError, PGRST_NO_ROW } from "@/lib/supabase/errors"
 import { subDays } from "date-fns"
 import type { StreakStats, HeatmapDay } from "@/app/(app)/home/actions"
 
-// ─── Public profile data (service client, runs server-side only) ──────────────
+// ─── Public profile data (cached — shared across all viewers of the same profile) ─
 
-export async function fetchPublicProfile(username: string) {
+// fetchPublicProfile is wrapped in unstable_cache so repeated hits of
+// /u/[username] share one DB read per 60 s instead of a full SSR round-trip
+// per visitor. fetchFriendshipStatus is intentionally left uncached (viewer-
+// specific) and is kept in the dynamic path by the page's getUser() call.
+
+async function _fetchPublicProfile(username: string) {
   // Anon/cookie client so RLS is the enforcing layer, not a bypassed service
   // role. NEVER use select("*") here — `profiles` is public-read (RLS
   // `using(true)`), so any column listed is world-readable. List safe columns
@@ -32,7 +38,13 @@ export async function fetchPublicProfile(username: string) {
   return data
 }
 
-export async function fetchPublicStreakStats(userId: string): Promise<StreakStats> {
+export const fetchPublicProfile = unstable_cache(
+  _fetchPublicProfile,
+  ["public-profile"],
+  { revalidate: 60 },
+)
+
+async function _fetchPublicStreakStats(userId: string): Promise<StreakStats> {
   // Anon/cookie client — daily_activity and profiles are public-read via RLS.
   const supabase = await createClient()
   const [{ data: activity, error: activityError }, { data: profile, error: profileError }] =
@@ -60,7 +72,13 @@ export async function fetchPublicStreakStats(userId: string): Promise<StreakStat
   return computeStreaks(qualifyingDays, today)
 }
 
-export async function fetchPublicHeatmapData(userId: string): Promise<HeatmapDay[]> {
+export const fetchPublicStreakStats = unstable_cache(
+  _fetchPublicStreakStats,
+  ["public-streak"],
+  { revalidate: 60 },
+)
+
+async function _fetchPublicHeatmapData(userId: string): Promise<HeatmapDay[]> {
   // Anon/cookie client — daily_activity is public-read via RLS.
   const supabase   = await createClient()
   const oneYearAgo = subDays(new Date(), 371).toISOString().slice(0, 10)
@@ -78,6 +96,12 @@ export async function fetchPublicHeatmapData(userId: string): Promise<HeatmapDay
     count: r.track_count,
   }))
 }
+
+export const fetchPublicHeatmapData = unstable_cache(
+  _fetchPublicHeatmapData,
+  ["public-heatmap"],
+  { revalidate: 60 },
+)
 
 export type FriendshipStatus =
   | "none"

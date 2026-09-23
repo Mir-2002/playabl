@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getUser } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Music, Flame, Trophy, Activity } from "lucide-react"
@@ -18,12 +18,13 @@ import { SectionErrorBoundary } from "@/components/section-error-boundary"
 import { throwOnDbError } from "@/lib/supabase/errors"
 
 export default async function HomePage() {
-  const supabase = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await getUser()
 
   if (!user) redirect("/login")
+
+  const supabase = await createClient()
 
   const [{ data: profile, error: profileError }, streaks] = await Promise.all([
     supabase
@@ -75,7 +76,7 @@ export default async function HomePage() {
             {displayName}
           </p>
         </div>
-        <NowPlaying />
+        <NowPlaying username={profile?.username ?? null} />
       </div>
 
       {/* Stats grid */}

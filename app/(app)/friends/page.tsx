@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getUser } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { getFriendsData } from "./actions"
 import { FriendsClient } from "./_components/friends-client"
@@ -11,13 +11,13 @@ import type { Metadata } from "next"
 export const metadata: Metadata = { title: "Friends — Playabl" }
 
 export default async function FriendsPage() {
-  const supabase = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await getUser()
 
   if (!user) redirect("/login")
 
+  const supabase = await createClient()
   const [initialData, { data: profile }] = await Promise.all([
     getFriendsData(user.id),
     supabase.from("profiles").select("username").eq("id", user.id).single(),

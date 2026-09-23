@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic"
 import { useRef, useEffect, useState, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { getLeaderboard, type LeaderboardEntry } from "../actions"
+import type { LeaderboardEntry } from "../actions"
 import { Music } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 
@@ -23,7 +23,8 @@ export function LeaderboardClient({ initialData, currentUserId }: Props) {
 
   const { data: entries = [], dataUpdatedAt, isFetching, isError } = useQuery({
     queryKey: ["leaderboard"],
-    queryFn: getLeaderboard,
+    queryFn: (): Promise<LeaderboardEntry[]> =>
+      fetch("/api/leaderboard").then((r) => r.json()),
     refetchInterval: 30_000,
     initialData,
   })

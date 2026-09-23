@@ -67,9 +67,21 @@ Deno.serve(async () => {
     console.error("[poll] due-accounts read failed; tick is a no-op:", dueError)
   }
 
-  for (const account of dueAccounts ?? []) {
+  const accounts = dueAccounts ?? []
+
+  // Batch-fetch timezones for all due users in one query instead of one
+  // per-user read inside pollUser — removes up to PER_TICK_BUDGET round-trips.
+  const userIds = accounts.map((a) => a.user_id)
+  const { data: profileRows } = userIds.length
+    ? await supabase.from("profiles").select("id, timezone").in("id", userIds)
+    : { data: [] }
+  const timezoneByUser = new Map(
+    (profileRows ?? []).map((p) => [p.id, p.timezone as string | null]),
+  )
+
+  for (const account of accounts) {
     try {
-      await pollUser(supabase, apiKey, account, hourlyCap, dailyCap)
+      await pollUser(supabase, apiKey, account, hourlyCap, dailyCap, timezoneByUser)
     } catch (err) {
       console.error(`[poll] ${account.lastfm_user} failed:`, err)
       // On a 429, drop req/s immediately: cool down the rest of this tick.
@@ -96,20 +108,11 @@ async function pollUser(
   },
   hourlyCap: number,
   dailyCap: number,
+  timezoneByUser: Map<string, string | null>,
 ): Promise<void> {
   const { user_id, lastfm_user, last_uts, consecutive_empty_polls } = account
 
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("timezone")
-    .eq("id", user_id)
-    .single()
-
-  if (profileError) {
-    console.error(`[poll] ${lastfm_user} profile read failed; using defaults:`, profileError)
-  }
-
-  const timezone   = safeTimezone(profile?.timezone as string | null | undefined)
+  const timezone   = safeTimezone(timezoneByUser.get(user_id) ?? null)
   const nowSeconds = Math.floor(Date.now() / 1000)
   const fromUts    = last_uts !== null
     ? last_uts - LOOKBACK

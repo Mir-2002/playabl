@@ -1,16 +1,16 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getUser } from "@/lib/supabase/server"
 import { UserMenu } from "@/components/user-menu"
 import Link from "next/link"
 
 export async function AppHeader() {
-  const supabase = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await getUser()
 
   let profile: { username: string | null; avatar_url: string | null } | null = null
   let pendingCount = 0
   if (user) {
+    const supabase = await createClient()
     const [profileResult, pendingResult] = await Promise.all([
       supabase
         .from("profiles")

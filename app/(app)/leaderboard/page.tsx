@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { getUser } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { getLeaderboard } from "./actions"
 import { LeaderboardClient } from "./_components/leaderboard-client"
@@ -9,10 +9,9 @@ import type { Metadata } from "next"
 export const metadata: Metadata = { title: "Leaderboard — Playabl" }
 
 export default async function LeaderboardPage() {
-  const supabase = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await getUser()
 
   if (!user) redirect("/login")
 

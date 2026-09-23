@@ -1,5 +1,5 @@
 import { notFound, permanentRedirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { getUser } from "@/lib/supabase/server"
 import { AppHeader } from "@/components/app-header"
 import { ActivityHeatmap } from "@/components/activity-heatmap"
 import { FriendButton } from "./_components/friend-button"
@@ -43,10 +43,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PublicProfilePage({ params }: Props) {
   const { username } = await params
 
-  const supabase = await createClient()
   const {
     data: { user: viewer },
-  } = await supabase.auth.getUser()
+  } = await getUser()
 
   const profile = await fetchPublicProfile(username)
 
