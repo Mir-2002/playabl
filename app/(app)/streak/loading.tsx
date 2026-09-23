@@ -6,7 +6,7 @@ export default function StreakLoading() {
       {/* Header */}
       <div className="space-y-3">
         <div className="h-4 w-24 bg-muted rounded-md" />
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
           <div className="space-y-1">
             <div className="h-6 w-20 bg-muted rounded-md" />

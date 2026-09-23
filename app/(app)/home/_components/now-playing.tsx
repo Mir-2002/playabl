@@ -4,22 +4,32 @@ import { useQuery } from "@tanstack/react-query"
 import { formatDistanceToNow } from "date-fns"
 import Image from "next/image"
 import { Music } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { getNowPlaying } from "../actions"
 
 export function NowPlaying() {
-  const { data, isError } = useQuery({
+  const { data, isError, isLoading } = useQuery({
     queryKey: ["now-playing"],
     queryFn: getNowPlaying,
     refetchInterval: 30_000,
   })
 
-  // On a persistent fetch failure, show a quiet "can't reach" affordance
-  // instead of silently vanishing. Idle / no-data (user has no scrobbles)
-  // still renders nothing.
-  if (!data) {
-    if (!isError) return null
+  if (isLoading) {
     return (
-      <div className="ml-auto hidden sm:flex items-center gap-1.5 flex-shrink-0">
+      <div className="ml-auto flex items-center gap-3 flex-shrink-0">
+        <div className="flex flex-col items-end gap-1.5">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+        <Skeleton className="w-14 h-14 rounded-lg" />
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
         <span className="w-2 h-2 rounded-full flex-shrink-0 bg-muted-foreground/40" aria-hidden />
         <span className="text-xs font-medium text-muted-foreground">
           Can&apos;t reach Last.fm
@@ -28,10 +38,21 @@ export function NowPlaying() {
     )
   }
 
+  if (!data) {
+    return (
+      <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
+        <span className="w-2 h-2 rounded-full flex-shrink-0 bg-muted-foreground/40" aria-hidden />
+        <span className="text-xs font-medium text-muted-foreground">
+          Nothing playing right now
+        </span>
+      </div>
+    )
+  }
+
   const { isPlaying, track_name, artist, image_url, played_at } = data
 
   return (
-    <div className="ml-auto hidden sm:flex items-center gap-3 flex-shrink-0">
+    <div className="ml-auto flex items-center gap-3 flex-shrink-0">
       <div className="flex flex-col items-end gap-0.5 min-w-0">
         <div className="flex items-center gap-1.5">
           <span

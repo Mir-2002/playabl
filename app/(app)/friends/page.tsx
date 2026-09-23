@@ -5,6 +5,7 @@ import { FriendsClient } from "./_components/friends-client"
 import { CopyLinkButton } from "@/components/copy-link-button"
 import { PageHeader } from "@/components/ui/page-header"
 import { Users } from "lucide-react"
+import { env } from "@/lib/env"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = { title: "Friends — Playabl" }
@@ -24,7 +25,7 @@ export default async function FriendsPage() {
 
   // Invite links are the public username slug — a /u/<uuid> path 404s since the
   // slug migration removed the UUID fallback.
-  const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/u/${profile?.username ?? ""}`
+  const inviteUrl = `${env.NEXT_PUBLIC_SITE_URL}/u/${profile?.username ?? ""}`
 
   return (
     <div className="space-y-6">

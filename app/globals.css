@@ -225,6 +225,8 @@
     .animate-pop-in,
     .animate-marquee,
     .animate-rank-flash,
+    .animate-ping,
+    .animate-pulse,
     .hover-wiggle:hover,
     [data-motion] * {
       animation: none !important;

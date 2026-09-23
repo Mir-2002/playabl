@@ -37,12 +37,9 @@ export default function ErrorPage({
           <Button onClick={reset} size="lg">
             Try again
           </Button>
-          <Link
-            href="/"
-            className="h-10 gap-1.5 px-4 inline-flex items-center justify-center rounded-full border-2 border-foreground text-sm font-medium hover:bg-[#FBBF24] transition-all duration-[--dur-base] ease-[--ease-pop] focus-visible:ring-3 focus-visible:ring-ring/30"
-          >
+          <Button render={<Link href="/" />} variant="secondary" size="lg">
             Go home
-          </Link>
+          </Button>
         </div>
       </div>
     </div>

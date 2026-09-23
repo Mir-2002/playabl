@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useRef, useEffect, useState } from "react"
+import { useRef, useEffect, useState, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { getLeaderboard, type LeaderboardEntry } from "../actions"
 import { Music } from "lucide-react"
@@ -77,6 +77,17 @@ function LiveBar({
   isFetching: boolean
   isError: boolean
 }) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  const formattedTime = useMemo(() => {
+    if (!mounted) return null
+    return new Date(dataUpdatedAt).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }, [mounted, dataUpdatedAt])
+
   return (
     <div className="flex items-center justify-end gap-2 px-6 py-2.5 bg-muted border-b-2 border-foreground/10">
       {/* On a refetch failure, drop the pulsing green "live" dot so stale data
@@ -86,19 +97,14 @@ function LiveBar({
           isError ? "bg-muted-foreground/40" : `bg-[#34D399] ${isFetching ? "animate-pulse" : ""}`
         }`}
         aria-hidden
-        suppressHydrationWarning
       />
       <p className="text-xs text-muted-foreground">
         {isError ? (
           "Reconnecting…"
+        ) : mounted && formattedTime ? (
+          <>Last updated {formattedTime}</>
         ) : (
-          <>
-            Last updated{" "}
-            {new Date(dataUpdatedAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </>
+          <span className="opacity-0">Last updated --:--</span>
         )}
       </p>
     </div>

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit, Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Playabl",
   description: "Your music. Proven. Ranked.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#8B5CF6",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

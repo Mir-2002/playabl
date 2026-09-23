@@ -22,7 +22,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params
   const profile = await fetchPublicProfile(username)
   const name = profile?.username ?? "Listener"
-  return { title: `${name} — Playabl` }
+  const points = profile?.total_points ?? 0
+  const description = `${name} on Playabl — ${points.toLocaleString()} point${points === 1 ? "" : "s"}`
+  return {
+    title: `${name} — Playabl`,
+    description,
+    openGraph: {
+      title: `${name} — Playabl`,
+      description,
+      type: "profile",
+    },
+    twitter: {
+      card: "summary",
+      title: `${name} — Playabl`,
+      description,
+    },
+  }
 }
 
 export default async function PublicProfilePage({ params }: Props) {

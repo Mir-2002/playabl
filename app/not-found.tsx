@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default function NotFound() {
   return (
@@ -36,12 +37,9 @@ export default function NotFound() {
         <p className="text-muted-foreground text-sm mt-3 mb-8 leading-relaxed">
           This profile or page doesn&apos;t exist. It may have been deleted.
         </p>
-        <Link
-          href="/"
-          className="h-10 gap-1.5 px-4 inline-flex items-center justify-center rounded-full border-2 border-foreground bg-primary text-primary-foreground text-sm font-bold shadow-hard hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-hard-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-hard-sm transition-all duration-[--dur-base] ease-[--ease-pop] focus-visible:ring-3 focus-visible:ring-ring/30"
-        >
+        <Button render={<Link href="/" />} size="lg">
           ← Back to Playabl
-        </Link>
+        </Button>
       </div>
     </div>
   )

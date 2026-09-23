@@ -62,9 +62,13 @@ function ToastViewport() {
             aria-hidden
           />
           <div className="flex-1 min-w-0 pl-2">
-            <Toast.Title className="font-heading font-bold text-sm text-foreground" />
+            <Toast.Title className="font-heading font-bold text-sm text-foreground">
+              {(toast as { title?: string }).title}
+            </Toast.Title>
             {(toast as { description?: string }).description && (
-              <Toast.Description className="text-xs text-muted-foreground mt-0.5" />
+              <Toast.Description className="text-xs text-muted-foreground mt-0.5">
+                {(toast as { description?: string }).description}
+              </Toast.Description>
             )}
           </div>
           <Toast.Close className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md hover:bg-muted transition-colors focus-visible:ring-2 focus-visible:ring-ring">

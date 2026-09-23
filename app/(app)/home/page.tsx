@@ -12,6 +12,7 @@ import { PointsDisplay } from "@/app/(app)/home/_components/points-display"
 import { TimezoneSync } from "@/app/(app)/home/_components/timezone-sync"
 import { NowPlaying } from "@/app/(app)/home/_components/now-playing"
 import { StatCard } from "@/components/ui/stat-card"
+import { SectionHeading } from "@/components/ui/section-heading"
 import { SkeletonHeatmap, SkeletonRow } from "@/components/ui/skeleton"
 import { SectionErrorBoundary } from "@/components/section-error-boundary"
 import { throwOnDbError } from "@/lib/supabase/errors"
@@ -44,6 +45,8 @@ export default async function HomePage() {
   return (
     <div className="space-y-8">
       <TimezoneSync profileTimezone={timezone} />
+      {/* Screen-reader page title */}
+      <h1 className="sr-only">Home</h1>
 
       {/* Welcome */}
       <div className="bg-white border-2 border-foreground rounded-2xl p-8 shadow-hard-lg flex items-center gap-6 animate-pop-in">
@@ -68,9 +71,9 @@ export default async function HomePage() {
           <p className="text-muted-foreground text-sm font-medium uppercase tracking-wide">
             Welcome back
           </p>
-          <h1 className="font-heading font-extrabold text-3xl text-foreground mt-0.5">
+          <p className="font-heading font-extrabold text-3xl text-foreground mt-0.5">
             {displayName}
-          </h1>
+          </p>
         </div>
         <NowPlaying />
       </div>
@@ -126,12 +129,12 @@ export default async function HomePage() {
 
       {/* Activity heatmap — granular Suspense */}
       <div className="bg-white border-2 border-foreground rounded-2xl p-6 shadow-hard">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full border-2 border-foreground bg-[#34D399] flex items-center justify-center">
-            <Activity className="w-5 h-5 text-foreground" />
-          </div>
-          <h2 className="font-heading font-bold text-xl">Activity</h2>
-        </div>
+        <SectionHeading
+          icon={<Activity className="w-5 h-5 text-foreground" />}
+          iconBg="#34D399"
+          title="Activity"
+          className="mb-5"
+        />
         <SectionErrorBoundary label="activity heatmap">
           <Suspense fallback={<SkeletonHeatmap />}>
             <HeatmapSection userId={user.id} today={today} />
@@ -141,12 +144,11 @@ export default async function HomePage() {
 
       {/* Leaderboard — granular Suspense */}
       <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-foreground bg-[#FBBF24] flex items-center justify-center">
-            <Trophy className="w-5 h-5 text-foreground" />
-          </div>
-          <h2 className="font-heading font-bold text-xl">Leaderboard</h2>
-        </div>
+        <SectionHeading
+          icon={<Trophy className="w-5 h-5 text-foreground" />}
+          iconBg="#FBBF24"
+          title="Leaderboard"
+        />
         <SectionErrorBoundary label="leaderboard">
           <Suspense
             fallback={

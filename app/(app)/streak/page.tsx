@@ -1,8 +1,7 @@
 import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import Link from "next/link"
-import { Flame, ArrowLeft } from "lucide-react"
+import { Flame } from "lucide-react"
 import { getStreakCalendarData } from "./actions"
 import { StreakCalendar } from "./_components/streak-calendar"
 import { PageHeader } from "@/components/ui/page-header"
@@ -21,21 +20,13 @@ export default async function StreakPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-3">
-        <Link
-          href="/home"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to home
-        </Link>
-        <PageHeader
-          title="Streak"
-          subtitle="Your daily listening calendar."
-          icon={<Flame className="w-5 h-5 text-white" />}
-          iconBg="bg-[#F472B6]"
-        />
-      </div>
+      <PageHeader
+        title="Streak"
+        subtitle="Your daily listening calendar."
+        icon={<Flame className="w-5 h-5 text-white" />}
+        iconBg="bg-[#F472B6]"
+        backHref="/home"
+      />
 
       <StreakHero
         currentStreak={data.currentStreak}

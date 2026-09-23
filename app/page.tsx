@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Music, Flame, Trophy } from "lucide-react"
 import { signInWithLastfm } from "@/app/auth/actions"
 import { Button } from "@/components/ui/button"
+import { StickerCard } from "@/components/ui/sticker-card"
 import { InViewSection } from "./_components/in-view-section"
 
 export default function LandingPage() {
@@ -12,12 +13,9 @@ export default function LandingPage() {
         <span className="font-heading font-bold text-xl text-foreground">
           Playabl
         </span>
-        <Link
-          href="/login"
-          className="px-4 py-2 rounded-full border-2 border-foreground text-sm font-medium hover:bg-[#FBBF24] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
+        <Button render={<Link href="/login" />} variant="secondary" size="sm">
           Sign in
-        </Link>
+        </Button>
       </nav>
 
       {/* Hero */}
@@ -63,7 +61,7 @@ export default function LandingPage() {
               <form action={signInWithLastfm}>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-3 px-6 py-3 rounded-full text-white font-bold border-2 border-foreground shadow-hard transition-all duration-[--dur-base] ease-[--ease-pop] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-hard-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-hard-sm"
+                  className="inline-flex items-center gap-3 px-6 py-3 rounded-full text-white font-bold border-2 border-foreground shadow-hard transition-all duration-[--dur-base] ease-[--ease-pop] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-hard-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-hard-sm focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
                   style={{ background: "#d51007" }}
                 >
                   <LastfmIcon />
@@ -97,7 +95,7 @@ export default function LandingPage() {
                 <span className="text-xs font-bold">7 day streak</span>
               </div>
               <div className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-foreground bg-white shadow-hard text-xs font-bold">
-                🏆 #3 on leaderboard
+                <span aria-hidden>🏆</span> #3 on leaderboard
               </div>
             </div>
           </InViewSection>
@@ -193,10 +191,7 @@ function FeatureCard({
   index: number
 }) {
   return (
-    <div
-      className="h-full bg-white border-2 border-foreground rounded-2xl p-6 shadow-hard animate-pop-in transition-all duration-[--dur-base] ease-[--ease-pop] hover:-translate-y-1 hover:rotate-[-1deg]"
-      style={{ "--i": index } as React.CSSProperties}
-    >
+    <StickerCard style={{ "--i": index } as React.CSSProperties}>
       <div
         className={`w-11 h-11 rounded-full border-2 border-foreground ${iconBg} flex items-center justify-center mb-4`}
       >
@@ -211,7 +206,7 @@ function FeatureCard({
         />
       </h3>
       <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
-    </div>
+    </StickerCard>
   )
 }
 

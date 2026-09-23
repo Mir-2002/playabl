@@ -62,6 +62,8 @@ const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov
 export function ActivityHeatmap({ data, today }: Props) {
   const weeks = buildGrid(data, today)
 
+  const activeDays = data.filter((d) => d.count > 0).length
+
   const monthLabels: { label: string; col: number }[] = []
   let lastMonth = -1
   weeks.forEach((week, col) => {
@@ -75,8 +77,13 @@ export function ActivityHeatmap({ data, today }: Props) {
   return (
     <Tooltip.Provider delay={200}>
       <div className="overflow-x-auto">
+        {/* AT summary for screen-reader users */}
+        <p className="sr-only">
+          Listening activity over the last year: {activeDays} active {activeDays === 1 ? "day" : "days"}.
+        </p>
+
         {/* Month labels */}
-        <div className="relative mb-1">
+        <div className="relative mb-1" aria-hidden>
           <div className="flex text-[10px] text-muted-foreground" style={{ gap: "3px" }}>
             {weeks.map((_, col) => {
               const label = monthLabels.find((m) => m.col === col)
@@ -89,8 +96,12 @@ export function ActivityHeatmap({ data, today }: Props) {
           </div>
         </div>
 
-        {/* Week columns with stagger */}
-        <div className="flex" style={{ gap: "3px" }}>
+        {/* Week columns with stagger — hidden from AT; the sr-only summary above covers it */}
+        <div
+          className="flex"
+          style={{ gap: "3px" }}
+          aria-hidden
+        >
           {weeks.map((week, col) => (
             <div
               key={col}
@@ -107,8 +118,9 @@ export function ActivityHeatmap({ data, today }: Props) {
                   <Tooltip.Root key={`${col}-${row}`}>
                     <Tooltip.Trigger
                       render={
-                        <div
-                          className={`w-3 h-3 rounded-sm flex-shrink-0 cursor-default transition-transform duration-[--dur-base] hover:scale-125 ${colorClass(cell.count)}`}
+                        <button
+                          type="button"
+                          className={`w-3 h-3 rounded-sm flex-shrink-0 cursor-default transition-transform duration-[--dur-base] hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground ${colorClass(cell.count)}`}
                         />
                       }
                       aria-label={formatTooltip(cell.date, cell.count)}
@@ -128,7 +140,7 @@ export function ActivityHeatmap({ data, today }: Props) {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-1.5 mt-3 justify-end">
+        <div className="flex items-center gap-1.5 mt-3 justify-end" aria-hidden>
           <span className="text-[10px] text-muted-foreground">Less</span>
           {["bg-muted", "bg-[#34D399]/30", "bg-[#34D399]/55", "bg-[#34D399]/80", "bg-[#34D399]"].map(
             (cls) => (

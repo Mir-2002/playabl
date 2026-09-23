@@ -6,6 +6,7 @@ import { Music } from "lucide-react"
 import Image from "next/image"
 import { getMoreHistory, type HistoryRow } from "../actions"
 import { hasMorePages, keysetCursor, groupByLocalDay } from "@/lib/history"
+import { ListRow } from "@/components/ui/list-row"
 
 export function HistoryList({
   initialRows,
@@ -49,45 +50,46 @@ export function HistoryList({
                 {group.rows.length} {group.rows.length === 1 ? "play" : "plays"}
               </span>
             </div>
-            <ul className="divide-y-2 divide-foreground/10">
-              {group.rows.map((row) => (
-                <li
-                  key={`${row.played_at}`}
-                  className="flex items-center gap-4 px-6 py-4"
-                >
-                  <div className="w-10 h-10 rounded-lg border-2 border-foreground bg-muted flex-shrink-0 flex items-center justify-center overflow-hidden">
-                    {row.image_url ? (
-                      <Image
-                        src={row.image_url}
-                        alt={row.track_name}
-                        width={40}
-                        height={40}
-                        className="object-cover w-full h-full"
-                      />
-                    ) : (
-                      <Music className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">
-                      {row.track_name}
-                    </p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {row.artist}{row.album ? ` · ${row.album}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
-                    {!row.credited && (
-                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-foreground/20">
-                        Capped
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(row.played_at), {
-                        addSuffix: true,
-                      })}
-                    </span>
-                  </div>
+            <ul className="px-3 py-1">
+              {group.rows.map((row, rowIdx) => (
+                <li key={`${row.played_at}`}>
+                  <ListRow
+                    index={rowIdx}
+                    leading={
+                      <div className="w-10 h-10 rounded-lg border-2 border-foreground bg-muted flex-shrink-0 flex items-center justify-center overflow-hidden">
+                        {row.image_url ? (
+                          <Image
+                            src={row.image_url}
+                            alt={row.track_name}
+                            width={40}
+                            height={40}
+                            className="object-cover w-full h-full"
+                          />
+                        ) : (
+                          <Music className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    }
+                    title={row.track_name}
+                    subtitle={`${row.artist}${row.album ? ` · ${row.album}` : ""}`}
+                    trailing={
+                      <div className="flex flex-col items-end gap-0.5">
+                        {!row.credited && (
+                          <span
+                            className="text-xs font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-foreground/20"
+                            title="Over the hourly/daily cap — stored but not counted toward points"
+                          >
+                            Capped
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(row.played_at), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                      </div>
+                    }
+                  />
                 </li>
               ))}
             </ul>
@@ -101,7 +103,7 @@ export function HistoryList({
             type="button"
             onClick={loadMore}
             disabled={isPending}
-            className="px-5 py-2.5 rounded-xl border-2 border-foreground bg-white font-heading font-bold text-sm shadow-hard hover:translate-y-0.5 hover:shadow-none transition-all disabled:opacity-60 disabled:pointer-events-none"
+            className="px-5 py-2.5 rounded-xl border-2 border-foreground bg-white font-heading font-bold text-sm shadow-hard hover:translate-y-0.5 hover:shadow-none transition-all disabled:opacity-60 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
           >
             {isPending ? "Loading…" : "Load more"}
           </button>

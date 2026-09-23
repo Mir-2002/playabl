@@ -66,6 +66,8 @@ export function MotionList({ entries, currentUserId, rankChanged }: Props) {
                   alt={displayName}
                   width={40}
                   height={40}
+                  loading="lazy"
+                  decoding="async"
                   className="w-10 h-10 rounded-full border-2 border-foreground flex-shrink-0"
                   style={{ boxShadow: "2px 2px 0px 0px #1E293B" }}
                 />

@@ -11,6 +11,7 @@ import { Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ListRow } from "@/components/ui/list-row"
 import { EmptyState } from "@/components/ui/empty-state"
+import { SectionHeading } from "@/components/ui/section-heading"
 import { useToast } from "@/hooks/use-toast"
 
 interface Props {
@@ -124,17 +125,19 @@ export function FriendsClient({ viewerId, initialData }: Props) {
 
       {/* Pending inbox */}
       <section>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full border-2 border-foreground bg-[#FBBF24] flex items-center justify-center">
-            <Users className="w-5 h-5 text-foreground" />
-          </div>
-          <h2 className="font-heading font-bold text-xl">Friend Requests</h2>
-          {data.pending.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-primary text-white text-xs font-bold animate-pop-in">
-              {data.pending.length}
-            </span>
-          )}
-        </div>
+        <SectionHeading
+          icon={<Users className="w-5 h-5 text-foreground" />}
+          iconBg="#FBBF24"
+          title="Friend Requests"
+          className="mb-4"
+          action={
+            data.pending.length > 0 ? (
+              <span className="px-2 py-0.5 rounded-full bg-primary text-white text-xs font-bold animate-pop-in">
+                {data.pending.length}
+              </span>
+            ) : undefined
+          }
+        />
 
         {data.pending.length === 0 ? (
           <EmptyState
@@ -185,12 +188,12 @@ export function FriendsClient({ viewerId, initialData }: Props) {
 
       {/* Friends list */}
       <section>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full border-2 border-foreground bg-[#34D399] flex items-center justify-center">
-            <Users className="w-5 h-5 text-foreground" />
-          </div>
-          <h2 className="font-heading font-bold text-xl">Friends</h2>
-        </div>
+        <SectionHeading
+          icon={<Users className="w-5 h-5 text-foreground" />}
+          iconBg="#34D399"
+          title="Friends"
+          className="mb-4"
+        />
 
         {data.friends.length === 0 ? (
           <EmptyState
@@ -248,6 +251,8 @@ function ProfileAvatar({ profile }: { profile: ProfileSummary }) {
       alt={name}
       width={40}
       height={40}
+      loading="lazy"
+      decoding="async"
       className="w-10 h-10 rounded-full border-2 border-foreground flex-shrink-0"
       style={{ boxShadow: "2px 2px 0px 0px #1E293B" }}
     />

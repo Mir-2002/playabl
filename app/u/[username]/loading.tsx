@@ -3,8 +3,8 @@ import { SkeletonCard, SkeletonHeatmap } from "@/components/ui/skeleton"
 export default function PublicProfileLoading() {
   return (
     <div className="min-h-screen bg-background bg-dots">
-      {/* Mimic AppHeader height */}
-      <div className="h-14 border-b border-border" />
+      {/* Mimic AppHeader height — py-4 × 2 + h-16 logo = ~96px */}
+      <div className="h-24 border-b border-border" />
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8 animate-in fade-in duration-[--dur-slow]">
         {/* Profile card skeleton */}
         <div className="bg-card border-2 border-foreground/10 rounded-2xl p-8 flex items-center gap-6">
@@ -17,7 +17,7 @@ export default function PublicProfileLoading() {
         </div>
 
         {/* Stats grid */}
-        <div className="grid sm:grid-cols-2 gap-6">
+        <div className="grid sm:grid-cols-2 gap-10">
           <SkeletonCard />
           <SkeletonCard />
         </div>
