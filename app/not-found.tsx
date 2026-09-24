@@ -37,7 +37,7 @@ export default function NotFound() {
         <p className="text-muted-foreground text-sm mt-3 mb-8 leading-relaxed">
           This profile or page doesn&apos;t exist. It may have been deleted.
         </p>
-        <Button render={<Link href="/" />} size="lg">
+        <Button render={<Link href="/" />} nativeButton={false} size="lg">
           ← Back to Playabl
         </Button>
       </div>

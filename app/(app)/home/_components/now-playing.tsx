@@ -1,6 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
+import { fetchJson } from "@/lib/fetch-json"
 import { formatDistanceToNow } from "date-fns"
 import Image from "next/image"
 import { Music } from "lucide-react"
@@ -10,9 +11,9 @@ import type { NowPlaying as NowPlayingData } from "@/supabase/functions/_shared/
 export function NowPlaying({ username }: { username: string | null }) {
   const { data, isError, isLoading } = useQuery({
     queryKey: ["now-playing", username],
-    queryFn: (): Promise<NowPlayingData | null> =>
-      fetch(`/api/now-playing?username=${encodeURIComponent(username ?? "")}`).then((r) =>
-        r.json()
+    queryFn: () =>
+      fetchJson<NowPlayingData | null>(
+        `/api/now-playing?username=${encodeURIComponent(username ?? "")}`
       ),
     refetchInterval: 30_000,
     enabled: Boolean(username),
@@ -20,8 +21,8 @@ export function NowPlaying({ username }: { username: string | null }) {
 
   if (isLoading) {
     return (
-      <div className="ml-auto flex items-center gap-3 flex-shrink-0">
-        <div className="flex flex-col items-end gap-1.5">
+      <div className="flex items-center justify-between gap-3 w-full sm:w-auto sm:ml-auto sm:justify-normal flex-shrink-0">
+        <div className="flex flex-col items-start sm:items-end gap-1.5">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-3 w-24" />
@@ -33,7 +34,7 @@ export function NowPlaying({ username }: { username: string | null }) {
 
   if (isError) {
     return (
-      <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
+      <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-1.5 flex-shrink-0">
         <span className="w-2 h-2 rounded-full flex-shrink-0 bg-muted-foreground/40" aria-hidden />
         <span className="text-xs font-medium text-muted-foreground">
           Can&apos;t reach Last.fm
@@ -44,7 +45,7 @@ export function NowPlaying({ username }: { username: string | null }) {
 
   if (!data) {
     return (
-      <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
+      <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-1.5 flex-shrink-0">
         <span className="w-2 h-2 rounded-full flex-shrink-0 bg-muted-foreground/40" aria-hidden />
         <span className="text-xs font-medium text-muted-foreground">
           Nothing playing right now
@@ -56,8 +57,8 @@ export function NowPlaying({ username }: { username: string | null }) {
   const { isPlaying, track_name, artist, image_url, played_at } = data
 
   return (
-    <div className="ml-auto flex items-center gap-3 flex-shrink-0">
-      <div className="flex flex-col items-end gap-0.5 min-w-0">
+    <div className="flex items-center justify-between gap-3 w-full sm:w-auto sm:ml-auto sm:justify-normal flex-shrink-0">
+      <div className="flex flex-col items-start sm:items-end gap-0.5 min-w-0">
         <div className="flex items-center gap-1.5">
           <span
             className={`w-2 h-2 rounded-full flex-shrink-0 ${

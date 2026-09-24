@@ -50,29 +50,31 @@ export default async function HomePage() {
       <h1 className="sr-only">Home</h1>
 
       {/* Welcome */}
-      <div className="bg-white border-2 border-foreground rounded-2xl p-8 shadow-hard-lg flex items-center gap-6 animate-pop-in">
-        {profile?.avatar_url ? (
-          <img
-            src={profile.avatar_url}
-            alt={displayName}
-            width={72}
-            height={72}
-            className="rounded-full border-2 border-foreground flex-shrink-0 hover-wiggle"
-          />
-        ) : (
-          <div
-            className="w-[72px] h-[72px] rounded-full border-2 border-foreground bg-primary flex-shrink-0 flex items-center justify-center text-white text-2xl font-bold hover-wiggle"
-          >
-            {displayName.charAt(0).toUpperCase()}
+      <div className="bg-white border-2 border-foreground rounded-2xl p-6 sm:p-8 shadow-hard-lg flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6 animate-pop-in">
+        <div className="flex items-center gap-4 sm:gap-6">
+          {profile?.avatar_url ? (
+            <img
+              src={profile.avatar_url}
+              alt={displayName}
+              width={72}
+              height={72}
+              className="rounded-full border-2 border-foreground flex-shrink-0 hover-wiggle"
+            />
+          ) : (
+            <div
+              className="w-[72px] h-[72px] rounded-full border-2 border-foreground bg-primary flex-shrink-0 flex items-center justify-center text-white text-2xl font-bold hover-wiggle"
+            >
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <p className="text-muted-foreground text-sm font-medium uppercase tracking-wide">
+              Welcome back
+            </p>
+            <p className="font-heading font-extrabold text-3xl text-foreground mt-0.5">
+              {displayName}
+            </p>
           </div>
-        )}
-        <div>
-          <p className="text-muted-foreground text-sm font-medium uppercase tracking-wide">
-            Welcome back
-          </p>
-          <p className="font-heading font-extrabold text-3xl text-foreground mt-0.5">
-            {displayName}
-          </p>
         </div>
         <NowPlaying username={profile?.username ?? null} />
       </div>

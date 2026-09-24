@@ -46,8 +46,8 @@ export function UserMenu({ username, displayName, avatarUrl, pendingCount }: Pro
       </Menu.Trigger>
 
       <Menu.Portal>
-        <Menu.Positioner side="bottom" align="end" sideOffset={10} className="z-50">
-          <Menu.Popup className="min-w-52 bg-white border-2 border-foreground rounded-xl shadow-hard p-1.5 outline-none origin-[var(--transform-origin)] transition-[transform,opacity] duration-[--dur-base] ease-[--ease-pop] data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95">
+        <Menu.Positioner side="bottom" align="end" sideOffset={10} collisionPadding={16} className="z-50">
+          <Menu.Popup className="w-[calc(100vw-2rem)] max-w-sm sm:w-auto sm:min-w-52 bg-white border-2 border-foreground rounded-xl shadow-hard p-1.5 outline-none origin-[var(--transform-origin)] transition-[transform,opacity] duration-[--dur-base] ease-[--ease-pop] data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95">
             {username && (
               <Menu.LinkItem
                 render={<Link href={`/u/${username}`} />}

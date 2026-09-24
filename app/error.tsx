@@ -37,7 +37,7 @@ export default function ErrorPage({
           <Button onClick={reset} size="lg">
             Try again
           </Button>
-          <Button render={<Link href="/" />} variant="secondary" size="lg">
+          <Button render={<Link href="/" />} nativeButton={false} variant="secondary" size="lg">
             Go home
           </Button>
         </div>

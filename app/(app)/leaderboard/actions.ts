@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache"
-import { createClient } from "@/lib/supabase/server"
+import { createPublicClient } from "@/lib/supabase/public"
 import type { Tables } from "@/lib/database.types"
 
 export type LeaderboardEntry = Pick<
@@ -12,7 +12,9 @@ export type LeaderboardEntry = Pick<
 // how many tabs or users are polling, collapsing N×/min to ~2/min total.
 export const getLeaderboard = unstable_cache(
   async (): Promise<LeaderboardEntry[]> => {
-    const supabase = await createClient()
+    // Cookieless anon client: `unstable_cache` forbids reading cookies/headers,
+    // which the server-component client does. Leaderboard is public-read RLS.
+    const supabase = createPublicClient()
 
     const { data, error } = await supabase
       .from("profiles")
