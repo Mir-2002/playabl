@@ -224,25 +224,25 @@ function StatsBand({ stats }: { stats: LandingStats }) {
       <div className="grid md:grid-cols-3 gap-6 items-stretch">
         {items.map((it) => (
           <InViewSection key={it.label} className="h-full">
-            <StickerCard style={{ "--i": it.index } as React.CSSProperties}>
+            <div
+              className="h-full flex flex-col items-center text-center animate-pop-in"
+              style={{ "--i": it.index } as React.CSSProperties}
+            >
               <div
                 className={`w-11 h-11 rounded-full border-2 border-foreground ${it.iconBg} flex items-center justify-center mb-4`}
               >
                 {it.icon}
               </div>
-              <StatFigure
-                value={it.value}
-                className="block font-heading font-extrabold text-4xl md:text-5xl text-foreground"
-              />
-              <span
-                className="block h-0.5 mt-2 rounded-full w-10"
-                style={{ background: it.accentColor }}
-                aria-hidden
-              />
-              <p className="text-sm text-muted-foreground font-medium mt-3">
+              <span style={{ color: it.accentColor }}>
+                <StatFigure
+                  value={it.value}
+                  className="block font-heading font-extrabold text-5xl md:text-6xl leading-none"
+                />
+              </span>
+              <p className="text-lg font-bold text-foreground mt-3">
                 {it.label}
               </p>
-            </StickerCard>
+            </div>
           </InViewSection>
         ))}
       </div>

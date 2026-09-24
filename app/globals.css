@@ -17,6 +17,13 @@
   --dur-slow:           380ms;
   --stagger-step:       45ms;
 
+  /* Smooth ease-in-out as the app-wide default transition. Utilities that
+     opt into `ease-[--ease-pop]` (cards, buttons) keep their bounce; every
+     bare `transition-*` becomes a smooth 220ms glide instead of the snappy
+     Tailwind default. */
+  --default-transition-duration:         220ms;
+  --default-transition-timing-function:  cubic-bezier(0.4, 0, 0.2, 1);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-plus-jakarta);
@@ -158,6 +165,11 @@
   }
   .shadow-hard-sm {
     box-shadow: 2px 2px 0px 0px #1E293B;
+  }
+  /* Full-width, non-offset bottom edge — used by the sticky header so the
+     hard line runs evenly across the whole width (no left-side gap). */
+  .shadow-hard-bottom {
+    box-shadow: 0px 4px 0px 0px #1E293B;
   }
   .shadow-hard-lg {
     box-shadow: 8px 8px 0px 0px #1E293B;

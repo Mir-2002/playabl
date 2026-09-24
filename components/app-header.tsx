@@ -30,10 +30,10 @@ export async function AppHeader() {
   const displayName = profile?.username ?? user?.email ?? "Listener"
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b-2 border-foreground shadow-hard">
+    <header className="sticky top-0 z-50 bg-white border-b-2 border-foreground shadow-hard-bottom">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/home" className="hover:opacity-80 transition-opacity">
-          <img src="/playabl-banner.svg" alt="Playabl" className="h-16 w-auto" />
+          <img src="/playabl-text.svg" alt="Playabl" className="h-16 w-auto" />
         </Link>
 
         {user && (

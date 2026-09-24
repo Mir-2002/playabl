@@ -58,12 +58,10 @@ export default async function HomePage() {
             width={72}
             height={72}
             className="rounded-full border-2 border-foreground flex-shrink-0 hover-wiggle"
-            style={{ boxShadow: "4px 4px 0px 0px #1E293B" }}
           />
         ) : (
           <div
             className="w-[72px] h-[72px] rounded-full border-2 border-foreground bg-primary flex-shrink-0 flex items-center justify-center text-white text-2xl font-bold hover-wiggle"
-            style={{ boxShadow: "4px 4px 0px 0px #1E293B" }}
           >
             {displayName.charAt(0).toUpperCase()}
           </div>
