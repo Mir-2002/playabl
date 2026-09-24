@@ -1,19 +1,28 @@
 import Link from "next/link"
-import { Music, Flame, Trophy } from "lucide-react"
+import { Music, Flame, Trophy, Users, Sparkles, CalendarCheck } from "lucide-react"
 import { signInWithLastfm } from "@/app/auth/actions"
 import { Button } from "@/components/ui/button"
 import { StickerCard } from "@/components/ui/sticker-card"
 import { InViewSection } from "./_components/in-view-section"
+import { StatFigure } from "./_components/stat-figure"
+import { getLandingStats, type LandingStats } from "@/app/_lib/landing-stats"
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  let stats: LandingStats | null = null
+  try {
+    stats = await getLandingStats()
+  } catch {
+    // Decision 7: a decorative stats band must never 500 the hero/CTA.
+    // On any query error, omit the band; the rest of the page renders.
+    stats = null
+  }
+
   return (
     <div className="min-h-screen bg-background bg-dots overflow-x-hidden">
       {/* Nav */}
       <nav className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-        <span className="font-heading font-bold text-xl text-foreground">
-          Playabl
-        </span>
-        <Button render={<Link href="/login" />} variant="secondary" size="sm">
+        <img src="/playabl-text.svg" alt="Playabl" className="h-16 w-auto" />
+        <Button render={<Link href="/login" />} nativeButton={false} variant="secondary" size="sm">
           Sign in
         </Button>
       </nav>
@@ -102,6 +111,8 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {stats && <StatsBand stats={stats} />}
+
       {/* Features */}
       <section className="max-w-6xl mx-auto px-6 py-16">
         <InViewSection>
@@ -172,6 +183,70 @@ export default function LandingPage() {
         </p>
       </footer>
     </div>
+  )
+}
+
+function StatsBand({ stats }: { stats: LandingStats }) {
+  const items = [
+    {
+      icon: <Users className="w-5 h-5 text-white" />,
+      iconBg: "bg-primary",
+      value: stats.listeners,
+      label: "Listeners",
+      accentColor: "#8B5CF6",
+      index: 0,
+    },
+    {
+      icon: <Sparkles className="w-5 h-5 text-white" />,
+      iconBg: "bg-[#F472B6]",
+      value: stats.totalPoints,
+      label: "Points earned",
+      accentColor: "#F472B6",
+      index: 1,
+    },
+    {
+      icon: <CalendarCheck className="w-5 h-5 text-white" />,
+      iconBg: "bg-[#FBBF24]",
+      value: stats.daysTracked,
+      label: "Days tracked",
+      accentColor: "#FBBF24",
+      index: 2,
+    },
+  ]
+
+  return (
+    <section className="max-w-6xl mx-auto px-6 py-16">
+      <InViewSection>
+        <h2 className="font-heading font-bold text-3xl text-center text-foreground mb-12">
+          Playabl by the numbers
+        </h2>
+      </InViewSection>
+      <div className="grid md:grid-cols-3 gap-6 items-stretch">
+        {items.map((it) => (
+          <InViewSection key={it.label} className="h-full">
+            <StickerCard style={{ "--i": it.index } as React.CSSProperties}>
+              <div
+                className={`w-11 h-11 rounded-full border-2 border-foreground ${it.iconBg} flex items-center justify-center mb-4`}
+              >
+                {it.icon}
+              </div>
+              <StatFigure
+                value={it.value}
+                className="block font-heading font-extrabold text-4xl md:text-5xl text-foreground"
+              />
+              <span
+                className="block h-0.5 mt-2 rounded-full w-10"
+                style={{ background: it.accentColor }}
+                aria-hidden
+              />
+              <p className="text-sm text-muted-foreground font-medium mt-3">
+                {it.label}
+              </p>
+            </StickerCard>
+          </InViewSection>
+        ))}
+      </div>
+    </section>
   )
 }
 
