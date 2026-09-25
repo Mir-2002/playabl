@@ -1,18 +1,17 @@
 import type { Metadata } from "next"
-import { createClient } from "@/lib/supabase/server"
+import { getUser } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import Link from "next/link"
-import { Flame, ArrowLeft } from "lucide-react"
+import { Flame } from "lucide-react"
 import { getStreakCalendarData } from "./actions"
 import { StreakCalendar } from "./_components/streak-calendar"
+import { PageHeader } from "@/components/ui/page-header"
 
 export const metadata: Metadata = { title: "Streak — Playabl" }
 
 export default async function StreakPage() {
-  const supabase = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await getUser()
 
   if (!user) redirect("/login")
 
@@ -20,28 +19,13 @@ export default async function StreakPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-3">
-        <Link
-          href="/home"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to home
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-foreground bg-[#F472B6] flex items-center justify-center">
-            <Flame className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="font-heading font-extrabold text-2xl text-foreground">
-              Streak
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Your daily listening calendar.
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Streak"
+        subtitle="Your daily listening calendar."
+        icon={<Flame className="w-5 h-5 text-white" />}
+        iconBg="bg-[#F472B6]"
+        backHref="/home"
+      />
 
       <StreakHero
         currentStreak={data.currentStreak}

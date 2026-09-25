@@ -1,60 +1,99 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
+import { fetchJson } from "@/lib/fetch-json"
+import { formatDistanceToNow } from "date-fns"
 import Image from "next/image"
 import { Music } from "lucide-react"
-import { getNowPlaying } from "@/app/(app)/home/actions"
+import { Skeleton } from "@/components/ui/skeleton"
+import type { NowPlaying as NowPlayingData } from "@/supabase/functions/_shared/lastfm"
 
-export function NowPlaying() {
-  const { data } = useQuery({
-    queryKey: ["now-playing"],
-    queryFn: getNowPlaying,
-    // Poll while the tab is focused. TanStack pauses this when the tab is
-    // hidden (refetchIntervalInBackground defaults to false).
-    refetchInterval: 15_000,
+export function NowPlaying({ username }: { username: string | null }) {
+  const { data, isError, isLoading } = useQuery({
+    queryKey: ["now-playing", username],
+    queryFn: () =>
+      fetchJson<NowPlayingData | null>(
+        `/api/now-playing?username=${encodeURIComponent(username ?? "")}`
+      ),
+    refetchInterval: 30_000,
+    enabled: Boolean(username),
   })
 
-  const playing = data?.isPlaying ?? false
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-between gap-3 w-full sm:w-auto sm:ml-auto sm:justify-normal flex-shrink-0">
+        <div className="flex flex-col items-start sm:items-end gap-1.5">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+        <Skeleton className="w-14 h-14 rounded-lg" />
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-1.5 flex-shrink-0">
+        <span className="w-2 h-2 rounded-full flex-shrink-0 bg-muted-foreground/40" aria-hidden />
+        <span className="text-xs font-medium text-muted-foreground">
+          Can&apos;t reach Last.fm
+        </span>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-1.5 flex-shrink-0">
+        <span className="w-2 h-2 rounded-full flex-shrink-0 bg-muted-foreground/40" aria-hidden />
+        <span className="text-xs font-medium text-muted-foreground">
+          Nothing playing right now
+        </span>
+      </div>
+    )
+  }
+
+  const { isPlaying, track_name, artist, image_url, played_at } = data
 
   return (
-    <div className="ml-auto hidden sm:flex flex-col items-end gap-2">
-      {playing && (
+    <div className="flex items-center justify-between gap-3 w-full sm:w-auto sm:ml-auto sm:justify-normal flex-shrink-0">
+      <div className="flex flex-col items-start sm:items-end gap-0.5 min-w-0">
         <div className="flex items-center gap-1.5">
           <span
-            className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse"
-            aria-hidden
+            className={`w-2 h-2 rounded-full flex-shrink-0 ${
+              isPlaying
+                ? "bg-[#34D399] animate-pulse"
+                : "bg-muted-foreground/40"
+            }`}
           />
-          <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Now Playing
+          <span className="text-xs font-medium text-muted-foreground">
+            {isPlaying ? "Now Playing" : "Last played"}
           </span>
         </div>
-      )}
-      <div className="flex items-center gap-3">
-        {playing && (
-          <div className="text-right max-w-[160px]">
-            <p className="text-sm font-bold text-foreground truncate">
-              {data?.trackName}
-            </p>
-            {data?.artists && (
-              <p className="text-xs text-muted-foreground truncate">
-                {data.artists}
-              </p>
-            )}
-          </div>
+        <p className="font-bold text-sm text-foreground truncate max-w-[180px]">
+          {track_name}
+        </p>
+        <p className="text-xs text-muted-foreground truncate max-w-[180px]">
+          {artist}
+          {!isPlaying && played_at
+            ? ` · ${formatDistanceToNow(new Date(played_at), { addSuffix: true })}`
+            : null}
+        </p>
+      </div>
+
+      <div className="w-14 h-14 rounded-lg border-2 border-foreground overflow-hidden flex-shrink-0 flex items-center justify-center bg-muted">
+        {image_url ? (
+          <Image
+            src={image_url}
+            alt={track_name}
+            width={56}
+            height={56}
+            className="object-cover w-full h-full"
+          />
+        ) : (
+          <Music className="w-6 h-6 text-muted-foreground" />
         )}
-        <div className="w-14 h-14 rounded-lg border-2 border-foreground overflow-hidden flex-shrink-0 bg-muted flex items-center justify-center">
-          {playing && data?.albumArt ? (
-            <Image
-              src={data.albumArt}
-              alt={data.trackName ?? "Album art"}
-              width={56}
-              height={56}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <Music className="w-5 h-5 text-muted-foreground" />
-          )}
-        </div>
       </div>
     </div>
   )

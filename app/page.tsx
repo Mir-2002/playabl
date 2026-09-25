@@ -1,32 +1,44 @@
 import Link from "next/link"
-import { Music, Flame, Trophy } from "lucide-react"
-import { signInWithSpotify } from "@/app/auth/actions"
+import { Music, Flame, Trophy, Users, Sparkles, CalendarCheck } from "lucide-react"
+import { signInWithLastfm } from "@/app/auth/actions"
+import { Button } from "@/components/ui/button"
+import { StickerCard } from "@/components/ui/sticker-card"
+import { InViewSection } from "./_components/in-view-section"
+import { StatFigure } from "./_components/stat-figure"
+import { getLandingStats, type LandingStats } from "@/app/_lib/landing-stats"
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  let stats: LandingStats | null = null
+  try {
+    stats = await getLandingStats()
+  } catch {
+    // Decision 7: a decorative stats band must never 500 the hero/CTA.
+    // On any query error, omit the band; the rest of the page renders.
+    stats = null
+  }
+
   return (
-    <div className="min-h-screen bg-background bg-dots">
+    <div className="min-h-screen bg-background bg-dots overflow-x-hidden">
       {/* Nav */}
       <nav className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-        <span className="font-heading font-bold text-xl text-foreground">
-          Playabl
-        </span>
-        <Link
-          href="/login"
-          className="px-4 py-2 rounded-full border-2 border-foreground text-sm font-medium hover:bg-[#FBBF24] transition-colors duration-200"
-        >
+        <img src="/playabl-text.svg" alt="Playabl" className="h-16 w-auto" />
+        <Button render={<Link href="/login" />} nativeButton={false} variant="secondary" size="sm">
           Sign in
-        </Link>
+        </Button>
       </nav>
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-6 pt-16 pb-24 relative overflow-hidden">
-        {/* Big violet circle decoration */}
+        {/* Blob shape behind headline */}
         <div
-          className="absolute -top-12 -left-16 w-96 h-96 rounded-full -z-10 opacity-20"
-          style={{ background: "#8B5CF6" }}
+          className="absolute -top-16 -left-20 w-[480px] h-[480px] -z-10 opacity-15"
+          style={{
+            background: "#8B5CF6",
+            borderRadius: "60% 40% 70% 30% / 50% 60% 40% 50%",
+          }}
           aria-hidden
         />
-        {/* Amber blob */}
+        {/* Amber circle */}
         <div
           className="absolute top-0 right-24 w-20 h-20 rounded-full border-2 border-foreground -z-10"
           style={{ background: "#FBBF24" }}
@@ -35,7 +47,7 @@ export default function LandingPage() {
 
         <div className="grid md:grid-cols-2 gap-16 items-center">
           {/* Left: headline */}
-          <div>
+          <InViewSection className="animate-pop-in" style={{ "--i": 0 } as React.CSSProperties}>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-foreground bg-white shadow-hard-sm text-xs font-bold uppercase tracking-widest mb-6">
               <span
                 className="w-2 h-2 rounded-full"
@@ -51,24 +63,25 @@ export default function LandingPage() {
               Ranked.
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-sm leading-relaxed">
-              Connect Spotify, earn points for every second you listen, and
+              Connect Last.fm, earn a point for every track you scrobble, and
               compete with friends on the global leaderboard.
             </p>
             <div className="mt-8 flex items-center gap-4 flex-wrap">
-              <form action={signInWithSpotify}>
+              <form action={signInWithLastfm}>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-primary text-white font-bold border-2 border-foreground shadow-hard transition-all duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1E293B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_#1E293B]"
+                  className="inline-flex items-center gap-3 px-6 py-3 rounded-full text-white font-bold border-2 border-foreground shadow-hard transition-all duration-[--dur-base] ease-[--ease-pop] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-hard-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-hard-sm focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+                  style={{ background: "#d51007" }}
                 >
-                  <SpotifyIcon />
-                  Connect Spotify
+                  <LastfmIcon />
+                  Connect Last.fm
                 </button>
               </form>
             </div>
-          </div>
+          </InViewSection>
 
           {/* Right: decorative card */}
-          <div className="relative hidden md:flex justify-center">
+          <InViewSection className="relative hidden md:flex justify-center animate-pop-in" style={{ "--i": 1 } as React.CSSProperties}>
             <div className="w-72 h-80 bg-white border-2 border-foreground rounded-2xl shadow-hard-lg flex flex-col items-center justify-center gap-4 p-6 relative overflow-hidden">
               <div
                 className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-40"
@@ -91,73 +104,149 @@ export default function LandingPage() {
                 <span className="text-xs font-bold">7 day streak</span>
               </div>
               <div className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-foreground bg-white shadow-hard text-xs font-bold">
-                🏆 #3 on leaderboard
+                <span aria-hidden>🏆</span> #3 on leaderboard
               </div>
             </div>
-          </div>
+          </InViewSection>
         </div>
       </section>
 
+      {stats && <StatsBand stats={stats} />}
+
       {/* Features */}
       <section className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="font-heading font-bold text-3xl text-center text-foreground mb-12">
-          How Playabl works
-        </h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          <FeatureCard
-            icon={<Music className="w-5 h-5 text-white" />}
-            iconBg="bg-primary"
-            title="Listen & Earn"
-            description="Every second of verified Spotify listening converts to points automatically."
-            accentColor="#8B5CF6"
-          />
-          <FeatureCard
-            icon={<Flame className="w-5 h-5 text-white" />}
-            iconBg="bg-[#F472B6]"
-            title="Keep Streaks"
-            description="Listen at least once daily to build your streak. Miss a day and start over."
-            accentColor="#F472B6"
-          />
-          <FeatureCard
-            icon={<Trophy className="w-5 h-5 text-white" />}
-            iconBg="bg-[#FBBF24]"
-            title="Climb the Ranks"
-            description="Compete on the global all-time leaderboard. Pure listening hours — no tricks."
-            accentColor="#FBBF24"
-          />
+        <InViewSection>
+          <h2 className="font-heading font-bold text-3xl text-center text-foreground mb-12">
+            How Playabl works
+          </h2>
+        </InViewSection>
+        <div className="grid md:grid-cols-3 gap-6 items-stretch">
+          {[
+            {
+              icon: <Music className="w-5 h-5 text-white" />,
+              iconBg: "bg-primary",
+              title: "Listen & Earn",
+              description: "Earn points for every track you listen to. No tricks, just pure scrobbles.",
+              accentColor: "#8B5CF6",
+              index: 0,
+            },
+            {
+              icon: <Flame className="w-5 h-5 text-white" />,
+              iconBg: "bg-[#F472B6]",
+              title: "Keep Streaks",
+              description: "Scrobble at least once daily to build and maintain your streak. Miss a day and start over.",
+              accentColor: "#F472B6",
+              index: 1,
+            },
+            {
+              icon: <Trophy className="w-5 h-5 text-white" />,
+              iconBg: "bg-[#FBBF24]",
+              title: "Climb the Ranks",
+              description: "Compete on the global all-time leaderboard along with other users.",
+              accentColor: "#FBBF24",
+              index: 2,
+            },
+          ].map((card) => (
+            <InViewSection key={card.title} className="h-full">
+              <FeatureCard {...card} />
+            </InViewSection>
+          ))}
         </div>
       </section>
 
       {/* Bottom CTA */}
       <section className="max-w-6xl mx-auto px-6 pb-24">
-        <div
-          className="rounded-3xl border-2 border-foreground p-12 text-center"
-          style={{ background: "#34D399" }}
-        >
-          <h2 className="font-heading font-bold text-3xl text-foreground">
-            Ready to prove your taste?
-          </h2>
-          <p className="mt-2 text-lg" style={{ color: "rgba(30,41,59,0.8)" }}>
-            Connect your Spotify and start earning points today.
-          </p>
-          <form action={signInWithSpotify} className="mt-8 inline-block">
-            <button
-              type="submit"
-              className="inline-flex items-center gap-3 px-7 py-3.5 rounded-full bg-foreground text-white font-bold border-2 border-foreground shadow-hard transition-all duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1E293B] active:translate-x-0.5 active:translate-y-0.5"
-            >
-              Get started &rarr;
-            </button>
-          </form>
-        </div>
+        <InViewSection>
+          <div
+            className="rounded-3xl border-2 border-foreground p-12 text-center"
+            style={{ background: "#34D399" }}
+          >
+            <h2 className="font-heading font-bold text-3xl text-foreground">
+              Ready to prove your taste?
+            </h2>
+            <p className="mt-2 text-lg" style={{ color: "rgba(30,41,59,0.8)" }}>
+              Connect your Last.fm and start earning points today.
+            </p>
+            <form action={signInWithLastfm} className="mt-8 inline-block">
+              <Button type="submit" size="lg">
+                Get started →
+              </Button>
+            </form>
+          </div>
+        </InViewSection>
       </section>
 
       {/* Footer */}
       <footer className="border-t-2 border-border py-8">
         <p className="text-center text-sm text-muted-foreground">
-          Playabl &mdash; built with Spotify &amp; Supabase
+          Playabl, built by Ahmer.
         </p>
       </footer>
     </div>
+  )
+}
+
+function StatsBand({ stats }: { stats: LandingStats }) {
+  const items = [
+    {
+      icon: <Users className="w-5 h-5 text-white" />,
+      iconBg: "bg-primary",
+      value: stats.listeners,
+      label: "Listeners",
+      accentColor: "#8B5CF6",
+      index: 0,
+    },
+    {
+      icon: <Sparkles className="w-5 h-5 text-white" />,
+      iconBg: "bg-[#F472B6]",
+      value: stats.totalPoints,
+      label: "Points earned",
+      accentColor: "#F472B6",
+      index: 1,
+    },
+    {
+      icon: <CalendarCheck className="w-5 h-5 text-white" />,
+      iconBg: "bg-[#FBBF24]",
+      value: stats.daysTracked,
+      label: "Days tracked",
+      accentColor: "#FBBF24",
+      index: 2,
+    },
+  ]
+
+  return (
+    <section className="max-w-6xl mx-auto px-6 py-16">
+      <InViewSection>
+        <h2 className="font-heading font-bold text-3xl text-center text-foreground mb-12">
+          Playabl by the numbers
+        </h2>
+      </InViewSection>
+      <div className="grid md:grid-cols-3 gap-6 items-stretch">
+        {items.map((it) => (
+          <InViewSection key={it.label} className="h-full">
+            <div
+              className="h-full flex flex-col items-center text-center animate-pop-in"
+              style={{ "--i": it.index } as React.CSSProperties}
+            >
+              <div
+                className={`w-11 h-11 rounded-full border-2 border-foreground ${it.iconBg} flex items-center justify-center mb-4`}
+              >
+                {it.icon}
+              </div>
+              <span style={{ color: it.accentColor }}>
+                <StatFigure
+                  value={it.value}
+                  className="block font-heading font-extrabold text-5xl md:text-6xl leading-none"
+                />
+              </span>
+              <p className="text-lg font-bold text-foreground mt-3">
+                {it.label}
+              </p>
+            </div>
+          </InViewSection>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -167,15 +256,17 @@ function FeatureCard({
   title,
   description,
   accentColor,
+  index,
 }: {
   icon: React.ReactNode
   iconBg: string
   title: string
   description: string
   accentColor: string
+  index: number
 }) {
   return (
-    <div className="bg-white border-2 border-foreground rounded-2xl p-6 shadow-hard transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:rotate-[-1deg] hover:scale-[1.02]">
+    <StickerCard style={{ "--i": index } as React.CSSProperties}>
       <div
         className={`w-11 h-11 rounded-full border-2 border-foreground ${iconBg} flex items-center justify-center mb-4`}
       >
@@ -190,11 +281,11 @@ function FeatureCard({
         />
       </h3>
       <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
-    </div>
+    </StickerCard>
   )
 }
 
-function SpotifyIcon() {
+function LastfmIcon() {
   return (
     <svg
       width="18"
@@ -203,7 +294,7 @@ function SpotifyIcon() {
       fill="currentColor"
       aria-hidden
     >
-      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+      <path d="M10.599 17.211l-.881-2.393s-1.433 1.596-3.579 1.596c-1.9 0-3.249-1.652-3.249-4.296 0-3.384 1.708-4.596 3.388-4.596 2.418 0 3.188 1.568 3.849 3.589l.871 2.724c.871 2.647 2.513 4.774 7.241 4.774 3.389 0 5.686-1.037 5.686-3.764 0-2.204-1.258-3.344-3.599-3.893l-1.741-.38c-1.2-.271-1.558-.749-1.558-1.549 0-.899.712-1.428 1.87-1.428 1.27 0 1.952.474 2.063 1.6l2.641-.319c-.219-2.373-1.851-3.343-4.563-3.343-2.382 0-4.673.899-4.673 3.791 0 1.799.871 2.935 3.059 3.491l1.85.463c1.368.34 1.961.84 1.961 1.72 0 1.025-.989 1.443-2.952 1.443-2.862 0-4.053-1.5-4.754-3.562l-.893-2.74C12.06 8.117 10.49 6 6.349 6 2.478 6 0 8.543 0 12.195c0 3.521 1.811 6.344 5.909 6.344 2.312 0 3.741-.82 4.69-1.328z" />
     </svg>
   )
 }

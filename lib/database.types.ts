@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -34,6 +34,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      anticheat_config: {
+        Row: {
+          daily_cap: number
+          hourly_cap: number
+          id: number
+        }
+        Insert: {
+          daily_cap?: number
+          hourly_cap?: number
+          id?: number
+        }
+        Update: {
+          daily_cap?: number
+          hourly_cap?: number
+          id?: number
+        }
+        Relationships: []
+      }
+      daily_activity: {
+        Row: {
+          activity_date: string
+          id: string
+          points: number
+          track_count: number
+          user_id: string
+        }
+        Insert: {
+          activity_date: string
+          id?: string
+          points?: number
+          track_count?: number
+          user_id: string
+        }
+        Update: {
+          activity_date?: string
+          id?: string
+          points?: number
+          track_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       friend_requests: {
         Row: {
           created_at: string
@@ -58,34 +100,73 @@ export type Database = {
         }
         Relationships: []
       }
+      lastfm_accounts: {
+        Row: {
+          consecutive_empty_polls: number
+          created_at: string
+          last_uts: number | null
+          lastfm_sk: string | null
+          lastfm_user: string
+          next_poll_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consecutive_empty_polls?: number
+          created_at?: string
+          last_uts?: number | null
+          lastfm_sk?: string | null
+          lastfm_user: string
+          next_poll_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consecutive_empty_polls?: number
+          created_at?: string
+          last_uts?: number | null
+          lastfm_sk?: string | null
+          lastfm_user?: string
+          next_poll_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       listening_events: {
         Row: {
+          album: string | null
           artist: string
           created_at: string
-          duration_ms: number
+          credited: boolean
           id: string
+          image_url: string | null
           played_at: string
-          spotify_track_id: string
+          track_id: string | null
           track_name: string
           user_id: string
         }
         Insert: {
+          album?: string | null
           artist: string
           created_at?: string
-          duration_ms: number
+          credited?: boolean
           id?: string
+          image_url?: string | null
           played_at: string
-          spotify_track_id: string
+          track_id?: string | null
           track_name: string
           user_id: string
         }
         Update: {
+          album?: string | null
           artist?: string
           created_at?: string
-          duration_ms?: number
+          credited?: boolean
           id?: string
+          image_url?: string | null
           played_at?: string
-          spotify_track_id?: string
+          track_id?: string | null
           track_name?: string
           user_id?: string
         }
@@ -96,64 +177,51 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           id: string
-          total_ms: number
+          timezone: string
           total_points: number
-          username: string | null
+          username: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           id: string
-          total_ms?: number
+          timezone?: string
           total_points?: number
-          username?: string | null
+          username: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           id?: string
-          total_ms?: number
+          timezone?: string
           total_points?: number
-          username?: string | null
-        }
-        Relationships: []
-      }
-      spotify_accounts: {
-        Row: {
-          access_token: string | null
-          created_at: string
-          expires_at: string | null
-          needs_reauth: boolean
-          provider_refresh_token: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_token?: string | null
-          created_at?: string
-          expires_at?: string | null
-          needs_reauth?: boolean
-          provider_refresh_token?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_token?: string | null
-          created_at?: string
-          expires_at?: string | null
-          needs_reauth?: boolean
-          provider_refresh_token?: string | null
-          updated_at?: string
-          user_id?: string
+          username?: string
         }
         Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      flagged_accounts: {
+        Row: {
+          lastfm_user: string | null
+          total_events: number | null
+          total_points: number | null
+          uncredited_events: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      apply_credits: {
+        Args: {
+          p_credited_ids: string[]
+          p_day_deltas: Json
+          p_total_delta: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
@@ -172,12 +240,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -201,11 +269,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -226,11 +294,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -251,11 +319,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -268,11 +336,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

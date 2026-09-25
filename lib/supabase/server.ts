@@ -30,3 +30,11 @@ export const createClient = cache(async function createClient() {
     }
   )
 })
+
+// getUser() makes a GoTrue network call on every invocation even when the
+// Supabase client is cached. Wrapping it in cache() collapses the
+// layout + header + page calls within one RSC render to a single round-trip.
+export const getUser = cache(async () => {
+  const supabase = await createClient()
+  return supabase.auth.getUser()
+})

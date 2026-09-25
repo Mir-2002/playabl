@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import { signInWithSpotify } from "@/app/auth/actions"
+import { signInWithLastfm } from "@/app/auth/actions"
+import { Button } from "@/components/ui/button"
 
 export default async function LoginPage({
   searchParams,
@@ -50,26 +51,27 @@ export default async function LoginPage({
         {/* Error state */}
         {error && (
           <div className="mb-6 px-4 py-3 rounded-xl border-2 border-destructive bg-destructive/10 text-destructive text-sm font-medium">
-            {error === "missing_code"
-              ? "Something went wrong. Please try again."
+            {error === "denied"
+              ? "Authorization was cancelled. Please try again."
               : "Authentication failed. Please try again."}
           </div>
         )}
 
-        {/* Spotify button */}
-        <form action={signInWithSpotify}>
-          <button
+        {/* Last.fm button */}
+        <form action={signInWithLastfm} className="w-full">
+          <Button
             type="submit"
-            className="w-full inline-flex items-center justify-center gap-3 px-6 py-3.5 rounded-full font-bold border-2 border-foreground shadow-hard transition-all duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1E293B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_#1E293B]"
-            style={{ background: "#1DB954", color: "#fff" }}
+            size="lg"
+            className="w-full"
+            style={{ background: "#d51007", color: "#fff" }}
           >
-            <SpotifyIcon />
-            Continue with Spotify
-          </button>
+            <LastfmIcon />
+            Continue with Last.fm
+          </Button>
         </form>
 
         <p className="text-center text-xs text-muted-foreground mt-6 leading-relaxed">
-          We only read your recently played tracks.
+          We only read your recently scrobbled tracks.
           <br />
           We never control your playback.
         </p>
@@ -90,7 +92,7 @@ export default async function LoginPage({
   )
 }
 
-function SpotifyIcon() {
+function LastfmIcon() {
   return (
     <svg
       width="20"
@@ -99,7 +101,7 @@ function SpotifyIcon() {
       fill="currentColor"
       aria-hidden
     >
-      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+      <path d="M10.599 17.211l-.881-2.393s-1.433 1.596-3.579 1.596c-1.9 0-3.249-1.652-3.249-4.296 0-3.384 1.708-4.596 3.388-4.596 2.418 0 3.188 1.568 3.849 3.589l.871 2.724c.871 2.647 2.513 4.774 7.241 4.774 3.389 0 5.686-1.037 5.686-3.764 0-2.204-1.258-3.344-3.599-3.893l-1.741-.38c-1.2-.271-1.558-.749-1.558-1.549 0-.899.712-1.428 1.87-1.428 1.27 0 1.952.474 2.063 1.6l2.641-.319c-.219-2.373-1.851-3.343-4.563-3.343-2.382 0-4.673.899-4.673 3.791 0 1.799.871 2.935 3.059 3.491l1.85.463c1.368.34 1.961.84 1.961 1.72 0 1.025-.989 1.443-2.952 1.443-2.862 0-4.053-1.5-4.754-3.562l-.893-2.74C12.06 8.117 10.49 6 6.349 6 2.478 6 0 8.543 0 12.195c0 3.521 1.811 6.344 5.909 6.344 2.312 0 3.741-.82 4.69-1.328z" />
     </svg>
   )
 }

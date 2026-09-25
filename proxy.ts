@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { isPublicPath } from "@/lib/security/paths"
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -26,7 +27,19 @@ export async function proxy(request: NextRequest) {
   )
 
   // Refresh session — do not remove; keeps the auth cookie alive.
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // Central route protection (default-secure): unauthenticated requests to any
+  // non-public path are redirected to /login. Page/layout getUser() checks stay
+  // as defense-in-depth.
+  if (!user && !isPublicPath(request.nextUrl.pathname)) {
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = "/login"
+    loginUrl.search = ""
+    return NextResponse.redirect(loginUrl)
+  }
 
   return supabaseResponse
 }

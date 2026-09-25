@@ -3,15 +3,17 @@
 -- Seeds run on `supabase db reset` (config.toml: [db.seed] enabled = true) but NOT on
 -- `supabase db push`, so anything here stays local and never reaches cloud.
 
--- Vault secrets for the poll-recently-played pg_cron job (see migration
--- 20260906000002). The cron command reads these at runtime; without them the tick
--- would fail. Re-runnable: delete-then-create so a bare `psql -f seed.sql` also works.
+-- Vault secrets for the poll-recently-played cron.
 --
--- poll_service_role_key is the standard Supabase *local demo* service-role JWT
--- (issuer "supabase-demo") — a public, well-known constant, safe to commit. The real
--- cloud key is never stored here; cloud Vault is seeded by hand (see CLAUDE.md).
-delete from vault.secrets where name in ('poll_edge_function_url', 'poll_service_role_key');
-
+-- poll_edge_function_url: host.docker.internal resolves to the host machine
+--   from inside the Supabase Docker stack, so the pg_net HTTP call reaches
+--   `supabase functions serve` on port 54321.
+--
+-- poll_service_role_key: the standard Supabase local demo service-role JWT.
+--   This is a well-known public key for local dev — safe to commit.
+--
+-- Cloud equivalents are seeded once by hand (never via migrations or push).
+-- See CLAUDE.md "Cron / Vault setup" for details.
 select vault.create_secret(
   'http://host.docker.internal:54321/functions/v1/poll-recently-played',
   'poll_edge_function_url'

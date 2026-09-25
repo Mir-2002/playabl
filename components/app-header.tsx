@@ -1,16 +1,16 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getUser } from "@/lib/supabase/server"
 import { UserMenu } from "@/components/user-menu"
 import Link from "next/link"
 
 export async function AppHeader() {
-  const supabase = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await getUser()
 
   let profile: { username: string | null; avatar_url: string | null } | null = null
   let pendingCount = 0
   if (user) {
+    const supabase = await createClient()
     const [profileResult, pendingResult] = await Promise.all([
       supabase
         .from("profiles")
@@ -30,15 +30,15 @@ export async function AppHeader() {
   const displayName = profile?.username ?? user?.email ?? "Listener"
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b-2 border-foreground shadow-hard">
+    <header className="sticky top-0 z-50 bg-white border-b-2 border-foreground shadow-hard-bottom">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/home" className="hover:opacity-80 transition-opacity">
-          <img src="/playabl-banner.svg" alt="Playabl" className="h-16 w-auto" />
+          <img src="/playabl-text.svg" alt="Playabl" className="h-16 w-auto" />
         </Link>
 
         {user && (
           <UserMenu
-            userId={user.id}
+            username={profile?.username ?? null}
             displayName={displayName}
             avatarUrl={profile?.avatar_url ?? null}
             pendingCount={pendingCount}
