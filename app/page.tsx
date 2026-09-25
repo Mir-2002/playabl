@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Music, Flame, Trophy, Users, Sparkles, CalendarCheck } from "lucide-react"
+import { Music, Flame, Trophy } from "lucide-react"
 import { signInWithLastfm } from "@/app/auth/actions"
 import { Button } from "@/components/ui/button"
 import { StickerCard } from "@/components/ui/sticker-card"
@@ -73,7 +73,6 @@ export default async function LandingPage() {
                   className="inline-flex items-center gap-3 px-6 py-3 rounded-full text-white font-bold border-2 border-foreground shadow-hard transition-all duration-[--dur-base] ease-[--ease-pop] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-hard-hover active:translate-x-0.5 active:translate-y-0.5 active:shadow-hard-sm focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
                   style={{ background: "#d51007" }}
                 >
-                  <LastfmIcon />
                   Connect Last.fm
                 </button>
               </form>
@@ -179,7 +178,7 @@ export default async function LandingPage() {
       {/* Footer */}
       <footer className="border-t-2 border-border py-8">
         <p className="text-center text-sm text-muted-foreground">
-          Playabl, built by Ahmer.
+          Playabl
         </p>
       </footer>
     </div>
@@ -189,24 +188,18 @@ export default async function LandingPage() {
 function StatsBand({ stats }: { stats: LandingStats }) {
   const items = [
     {
-      icon: <Users className="w-5 h-5 text-white" />,
-      iconBg: "bg-primary",
       value: stats.listeners,
       label: "Listeners",
       accentColor: "#8B5CF6",
       index: 0,
     },
     {
-      icon: <Sparkles className="w-5 h-5 text-white" />,
-      iconBg: "bg-[#F472B6]",
       value: stats.totalPoints,
       label: "Points earned",
       accentColor: "#F472B6",
       index: 1,
     },
     {
-      icon: <CalendarCheck className="w-5 h-5 text-white" />,
-      iconBg: "bg-[#FBBF24]",
       value: stats.daysTracked,
       label: "Days tracked",
       accentColor: "#FBBF24",
@@ -216,11 +209,6 @@ function StatsBand({ stats }: { stats: LandingStats }) {
 
   return (
     <section className="max-w-6xl mx-auto px-6 py-16">
-      <InViewSection>
-        <h2 className="font-heading font-bold text-3xl text-center text-foreground mb-12">
-          Playabl by the numbers
-        </h2>
-      </InViewSection>
       <div className="grid md:grid-cols-3 gap-6 items-stretch">
         {items.map((it) => (
           <InViewSection key={it.label} className="h-full">
@@ -228,15 +216,10 @@ function StatsBand({ stats }: { stats: LandingStats }) {
               className="h-full flex flex-col items-center text-center animate-pop-in"
               style={{ "--i": it.index } as React.CSSProperties}
             >
-              <div
-                className={`w-11 h-11 rounded-full border-2 border-foreground ${it.iconBg} flex items-center justify-center mb-4`}
-              >
-                {it.icon}
-              </div>
               <span style={{ color: it.accentColor }}>
                 <StatFigure
                   value={it.value}
-                  className="block font-heading font-extrabold text-5xl md:text-6xl leading-none"
+                  className="block font-heading font-extrabold text-7xl md:text-8xl leading-none"
                 />
               </span>
               <p className="text-lg font-bold text-foreground mt-3">
@@ -282,19 +265,5 @@ function FeatureCard({
       </h3>
       <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
     </StickerCard>
-  )
-}
-
-function LastfmIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden
-    >
-      <path d="M10.599 17.211l-.881-2.393s-1.433 1.596-3.579 1.596c-1.9 0-3.249-1.652-3.249-4.296 0-3.384 1.708-4.596 3.388-4.596 2.418 0 3.188 1.568 3.849 3.589l.871 2.724c.871 2.647 2.513 4.774 7.241 4.774 3.389 0 5.686-1.037 5.686-3.764 0-2.204-1.258-3.344-3.599-3.893l-1.741-.38c-1.2-.271-1.558-.749-1.558-1.549 0-.899.712-1.428 1.87-1.428 1.27 0 1.952.474 2.063 1.6l2.641-.319c-.219-2.373-1.851-3.343-4.563-3.343-2.382 0-4.673.899-4.673 3.791 0 1.799.871 2.935 3.059 3.491l1.85.463c1.368.34 1.961.84 1.961 1.72 0 1.025-.989 1.443-2.952 1.443-2.862 0-4.053-1.5-4.754-3.562l-.893-2.74C12.06 8.117 10.49 6 6.349 6 2.478 6 0 8.543 0 12.195c0 3.521 1.811 6.344 5.909 6.344 2.312 0 3.741-.82 4.69-1.328z" />
-    </svg>
   )
 }
